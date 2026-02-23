@@ -1,0 +1,443 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>폴라그란데 계약서</title>
+    <style>
+        @media print {
+            @page {
+                size: A4 portrait;
+                margin: 15mm;
+            }
+            body { margin: 0; }
+            .page-break { page-break-after: always; }
+        }
+        
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        
+        body {
+            font-family: 'Noto Sans KR', sans-serif;
+            font-size: 11pt;
+            line-height: 1.5;
+            color: #333;
+        }
+        
+        .contract-container {
+            max-width: 210mm;
+            margin: 0 auto;
+            background: white;
+            padding: 20mm;
+        }
+        
+        .header {
+            text-align: center;
+            border-bottom: 2px solid #2c5f8d;
+            padding-bottom: 10mm;
+            margin-bottom: 10mm;
+        }
+        
+        .header h1 {
+            font-size: 24pt;
+            color: #2c5f8d;
+            margin-bottom: 5mm;
+        }
+        
+        .header .subtitle {
+            font-size: 12pt;
+            color: #666;
+        }
+        
+        .section {
+            margin-bottom: 8mm;
+        }
+        
+        .section-title {
+            font-size: 14pt;
+            font-weight: bold;
+            color: #2c5f8d;
+            border-bottom: 1px solid #ddd;
+            padding-bottom: 2mm;
+            margin-bottom: 3mm;
+        }
+        
+        .info-grid {
+            display: grid;
+            grid-template-columns: 120px 1fr;
+            gap: 2mm;
+            margin-bottom: 3mm;
+        }
+        
+        .info-label {
+            font-weight: bold;
+            color: #555;
+        }
+        
+        .info-value {
+            color: #333;
+        }
+        
+        .options-list {
+            list-style: none;
+            padding-left: 5mm;
+        }
+        
+        .options-list li {
+            padding: 1mm 0;
+        }
+        
+        .options-list li:before {
+            content: "✓ ";
+            color: #2c5f8d;
+            font-weight: bold;
+        }
+        
+        .price-summary {
+            background: #f8f9fa;
+            padding: 5mm;
+            border-radius: 4mm;
+            margin-top: 5mm;
+        }
+        
+        .price-row {
+            display: flex;
+            justify-content: space-between;
+            padding: 2mm 0;
+        }
+        
+        .price-row.total {
+            border-top: 2px solid #2c5f8d;
+            margin-top: 2mm;
+            padding-top: 3mm;
+            font-size: 14pt;
+            font-weight: bold;
+            color: #2c5f8d;
+        }
+        
+        .signature-section {
+            margin-top: 10mm;
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10mm;
+        }
+        
+        .signature-box {
+            border: 1px solid #ddd;
+            padding: 5mm;
+            text-align: center;
+        }
+        
+        .signature-line {
+            border-bottom: 1px solid #333;
+            margin-top: 10mm;
+            height: 30px;
+        }
+        
+        /* 페이지 2 스타일 */
+        .notice-page {
+            padding-top: 10mm;
+        }
+        
+        .notice-title {
+            font-size: 18pt;
+            font-weight: bold;
+            color: #d32f2f;
+            text-align: center;
+            margin-bottom: 8mm;
+        }
+        
+        .notice-content {
+            background: #fff9e6;
+            border: 2px solid #ffc107;
+            padding: 8mm;
+            border-radius: 4mm;
+        }
+        
+        .notice-item {
+            margin-bottom: 5mm;
+            padding-left: 5mm;
+        }
+        
+        .notice-item h3 {
+            color: #d32f2f;
+            font-size: 12pt;
+            margin-bottom: 2mm;
+        }
+        
+        .notice-item p {
+            color: #333;
+            line-height: 1.8;
+        }
+    </style>
+</head>
+<body>
+    <!-- 페이지 1: 계약 정보 -->
+    <div class="contract-container">
+        <div class="header">
+            <h1>폴라그란데 계약서</h1>
+            <div class="subtitle">Pollagrande Event Contract</div>
+        </div>
+        
+        <!-- 기본 정보 -->
+        <div class="section">
+            <div class="section-title">기본 정보</div>
+            <div class="info-grid">
+                <div class="info-label">고객명:</div>
+                <div class="info-value" id="print-customerName">-</div>
+                
+                <div class="info-label">연락처:</div>
+                <div class="info-value" id="print-phone">-</div>
+                
+                <div class="info-label">작성일:</div>
+                <div class="info-value" id="print-createdAt">-</div>
+            </div>
+        </div>
+        
+        <!-- 행사 정보 -->
+        <div class="section">
+            <div class="section-title">행사 정보</div>
+            <div class="info-grid">
+                <div class="info-label">행사 날짜:</div>
+                <div class="info-value" id="print-eventDate">-</div>
+                
+                <div class="info-label">행사 시간:</div>
+                <div class="info-value" id="print-eventTime">-</div>
+                
+                <div class="info-label">행사 카테고리:</div>
+                <div class="info-value" id="print-eventCategory">-</div>
+                
+                <div class="info-label">행사 유형:</div>
+                <div class="info-value" id="print-eventType">-</div>
+                
+                <div class="info-label">예상 인원:</div>
+                <div class="info-value" id="print-guestCount">-</div>
+                
+                <div class="info-label">식사 유형:</div>
+                <div class="info-value" id="print-mealType">-</div>
+            </div>
+        </div>
+        
+        <!-- 선택 옵션 -->
+        <div class="section">
+            <div class="section-title">선택 옵션</div>
+            <ul class="options-list" id="print-options">
+                <li>선택된 옵션이 없습니다</li>
+            </ul>
+        </div>
+        
+        <!-- 협력업체 -->
+        <div class="section">
+            <div class="section-title">협력업체</div>
+            <div id="print-partners">
+                <p style="color: #999;">등록된 협력업체가 없습니다</p>
+            </div>
+        </div>
+        
+        <!-- 금액 요약 -->
+        <div class="section">
+            <div class="section-title">금액 요약</div>
+            <div class="price-summary">
+                <div class="price-row">
+                    <span>기본 금액:</span>
+                    <span id="print-basePrice">₩0</span>
+                </div>
+                <div class="price-row">
+                    <span>식사 비용:</span>
+                    <span id="print-mealPrice">₩0</span>
+                </div>
+                <div class="price-row">
+                    <span>옵션 금액:</span>
+                    <span id="print-optionPrice">₩0</span>
+                </div>
+                <div class="price-row">
+                    <span>프로모션 할인:</span>
+                    <span id="print-promotionPrice" style="color: #d32f2f;">-₩0</span>
+                </div>
+                <div class="price-row total">
+                    <span>총 계약 금액:</span>
+                    <span id="print-totalPrice">₩0</span>
+                </div>
+                <div class="price-row" style="margin-top: 3mm; padding-top: 3mm; border-top: 1px solid #ddd;">
+                    <span>계약금:</span>
+                    <span id="print-depositPrice" style="color: #2c5f8d;">₩0</span>
+                </div>
+                <div class="price-row">
+                    <span>잔금:</span>
+                    <span id="print-balancePrice" style="color: #d32f2f; font-weight: bold;">₩0</span>
+                </div>
+            </div>
+        </div>
+        
+        <!-- 서명 -->
+        <div class="signature-section">
+            <div class="signature-box">
+                <div style="font-weight: bold; margin-bottom: 5mm;">업체 (폴라그란데)</div>
+                <div class="signature-line"></div>
+                <div style="margin-top: 3mm; font-size: 10pt; color: #666;">서명</div>
+            </div>
+            <div class="signature-box">
+                <div style="font-weight: bold; margin-bottom: 5mm;">고객</div>
+                <div class="signature-line"></div>
+                <div style="margin-top: 3mm; font-size: 10pt; color: #666;">서명</div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- 페이지 구분 -->
+    <div class="page-break"></div>
+    
+    <!-- 페이지 2: 행사 최종 확인 안내 -->
+    <div class="contract-container notice-page">
+        <div class="notice-title">⚠️ 행사 최종 확인 안내 (필독)</div>
+        
+        <div class="notice-content">
+            <div class="notice-item">
+                <h3>1. 행사 일주일 전 최종 확인</h3>
+                <p>
+                    행사 예정일 기준 <strong>일주일 전까지</strong> 다음 사항을 반드시 확인해 주시기 바랍니다:<br>
+                    • 최종 참석 인원 (추가/감소 시 비용 조정)<br>
+                    • 식사 메뉴 최종 확정<br>
+                    • 선택 옵션 변경 사항<br>
+                    • 협력업체 최종 확인
+                </p>
+            </div>
+            
+            <div class="notice-item">
+                <h3>2. 인원 변경 안내</h3>
+                <p>
+                    • 행사 일주일 전까지는 인원 조정이 가능합니다<br>
+                    • 일주일 이내 인원 감소 시 환불이 불가능합니다<br>
+                    • 당일 인원 증가는 최대 10% 이내로 가능하며, 추가 비용이 발생합니다
+                </p>
+            </div>
+            
+            <div class="notice-item">
+                <h3>3. 취소 및 환불 규정</h3>
+                <p>
+                    • 행사일 기준 30일 전: 전액 환불 (계약금 제외)<br>
+                    • 행사일 기준 15~29일 전: 50% 환불<br>
+                    • 행사일 기준 7~14일 전: 30% 환불<br>
+                    • 행사일 기준 7일 이내: 환불 불가
+                </p>
+            </div>
+            
+            <div class="notice-item">
+                <h3>4. 잔금 납부 안내</h3>
+                <p>
+                    • 잔금은 행사일 <strong>3일 전까지</strong> 완납해 주시기 바랍니다<br>
+                    • 미납 시 행사 진행이 불가능할 수 있습니다<br>
+                    • 입금 계좌: 국민은행 123-456-789012 (폴라그란데)
+                </p>
+            </div>
+            
+            <div class="notice-item">
+                <h3>5. 협력업체 관련 안내</h3>
+                <p>
+                    • 협력업체(사회자, 촬영, 드레스 등)는 별도 계약입니다<br>
+                    • 협력업체 관련 문의 및 변경은 직접 업체와 협의하셔야 합니다<br>
+                    • 폴라그란데는 협력업체 소개만 진행하며, 업체와의 계약 및 비용 처리는 별도입니다
+                </p>
+            </div>
+            
+            <div class="notice-item">
+                <h3>6. 문의 및 긴급 연락처</h3>
+                <p>
+                    • 평일 문의: 043-123-4567 (오전 10시 ~ 오후 6시)<br>
+                    • 긴급 연락: 010-1234-5678 (행사 당일 및 주말)<br>
+                    • 이메일: info@pollagrande.com
+                </p>
+            </div>
+        </div>
+        
+        <div style="text-align: center; margin-top: 10mm; padding: 5mm; background: #e3f2fd; border-radius: 4mm;">
+            <p style="font-size: 12pt; font-weight: bold; color: #2c5f8d;">
+                폴라그란데와 함께하는 특별한 순간이 되시길 바랍니다! 💙
+            </p>
+        </div>
+    </div>
+    
+    <script>
+        // URL에서 상담 ID 가져오기
+        const urlParams = new URLSearchParams(window.location.search);
+        const consultationId = urlParams.get('id');
+        
+        // 부모 창에서 데이터 받기
+        window.addEventListener('message', function(event) {
+            if (event.data && event.data.type === 'PRINT_DATA') {
+                populateContract(event.data.consultation);
+            }
+        });
+        
+        // 계약서 데이터 채우기
+        function populateContract(data) {
+            // 기본 정보
+            document.getElementById('print-customerName').textContent = data.customerName || '-';
+            document.getElementById('print-phone').textContent = data.phone || '-';
+            document.getElementById('print-createdAt').textContent = formatDate(data.createdAt) || '-';
+            
+            // 행사 정보
+            document.getElementById('print-eventDate').textContent = formatDate(data.eventDate) || '-';
+            document.getElementById('print-eventTime').textContent = data.eventTime || '-';
+            document.getElementById('print-eventCategory').textContent = data.eventCategory || '-';
+            document.getElementById('print-eventType').textContent = data.eventType || '-';
+            document.getElementById('print-guestCount').textContent = (data.guestCount || 0) + '명';
+            document.getElementById('print-mealType').textContent = data.mealType || '없음';
+            
+            // 선택 옵션
+            const optionsContainer = document.getElementById('print-options');
+            if (data.selectedOptions && data.selectedOptions.length > 0) {
+                optionsContainer.innerHTML = data.selectedOptions
+                    .map(opt => `<li>${opt}</li>`)
+                    .join('');
+            }
+            
+            // 협력업체
+            const partnersContainer = document.getElementById('print-partners');
+            if (data.partners) {
+                const partnersList = Object.entries(data.partners)
+                    .filter(([key, value]) => value)
+                    .map(([key, value]) => `<div style="margin-bottom: 2mm;"><strong>${getPartnerLabel(key)}:</strong> ${value}</div>`)
+                    .join('');
+                
+                partnersContainer.innerHTML = partnersList || '<p style="color: #999;">등록된 협력업체가 없습니다</p>';
+            }
+            
+            // 금액 정보
+            document.getElementById('print-basePrice').textContent = formatPrice(data.basePrice || 0);
+            document.getElementById('print-mealPrice').textContent = formatPrice(data.mealPrice || 0);
+            document.getElementById('print-optionPrice').textContent = formatPrice(data.optionPrice || 0);
+            document.getElementById('print-promotionPrice').textContent = '-' + formatPrice(data.promotionAmount || 0);
+            document.getElementById('print-totalPrice').textContent = formatPrice(data.totalPrice || 0);
+            document.getElementById('print-depositPrice').textContent = formatPrice(data.depositAmount || 0);
+            document.getElementById('print-balancePrice').textContent = formatPrice(data.balancePrice || 0);
+            
+            // 인쇄 실행
+            setTimeout(() => window.print(), 500);
+        }
+        
+        // 협력업체 라벨 변환
+        function getPartnerLabel(key) {
+            const labels = {
+                mc: '사회자',
+                photo: '스냅/촬영',
+                dress: '드레스/메이크업',
+                flower: '생화장식',
+                gift: '답례품'
+            };
+            return labels[key] || key;
+        }
+        
+        // 날짜 포맷
+        function formatDate(dateString) {
+            if (!dateString) return '-';
+            const date = new Date(dateString);
+            return date.toLocaleDateString('ko-KR');
+        }
+        
+        // 가격 포맷
+        function formatPrice(price) {
+            return '₩' + (price || 0).toLocaleString('ko-KR');
+        }
+    </script>
+</body>
+</html>
