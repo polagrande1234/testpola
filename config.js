@@ -2,7 +2,7 @@
 // 예시: https://script.google.com/macros/s/YOUR_SCRIPT_ID/exec
 
 const CONFIG = {
-    API_URL: 'https://script.google.com/macros/s/AKfycbw2YsFa9EAvXuSdycPDA5Lt6WWonUoM1GKBkRvFnkJYO5rW7schBJxpxMgNBY27w3OUQw/exec',
+    API_URL: '',
     
     // 행사 유형 정의
     EVENT_TYPES: {
