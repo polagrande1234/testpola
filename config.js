@@ -1,38 +1,41 @@
-// Google Apps Script 배포 URL을 여기에 입력하세요
-// 예시: https://script.google.com/macros/s/YOUR_SCRIPT_ID/exec
 
 const CONFIG = {
-    API_URL: 'https://script.google.com/macros/s/AKfycbw2YsFa9EAvXuSdycPDA5Lt6WWonUoM1GKBkRvFnkJYO5rW7schBJxpxMgNBY27w3OUQw/exec',
-    
-    // 행사 유형 정의
+    API_URL: 'https://script.google.com/macros/s/AKfycbyxlB-aT5lD1ymw0Kqpv-AIlJfOMrExXZzANPj67jQ66Zpgto0VvvUmnnk76Q2pFL-DNg/exec',
+
     EVENT_TYPES: {
-        '웨딩': ['스몰웨딩', '프라이빗웨딩', '가든웨딩'],
-        '행사': ['돌잔치', '칠순/팔순', '기업행사', '브런치모임']
+        '웨딩': [
+            '마이크로웨딩(24인 식대포함 420만원)',
+            '하우스웨딩(24인 식대포함 490만원)',
+            '가든웨딩(24인 식대포함 620만원)'
+        ],
+        '행사': [
+            '돌잔치',
+            '가족행사',
+            '기업행사',
+            '대관'
+        ]
     },
-    
-    // 기본 가격표
-    PRICES: {
-        '스몰웨딩': 3500000,
-        '프라이빗웨딩': 5000000,
-        '가든웨딩': 6000000,
-        '돌잔치': 2000000,
-        '칠순/팔순': 2500000,
-        '기업행사': 3000000,
-        '브런치모임': 1500000
-    },
-    
-    // 식사 가격
+
+    WEDDING_BASE_GUEST: 24,
+    WEDDING_EXTRA_MEAL: 55000,
+
     MEAL_PRICES: {
-        'western': 55000,
-        'korean': 59000
+        western: 55000,
+        korean: 59000
     },
-    
-    // 추가 옵션
+
+    WEDDING_PRICES: {
+        '마이크로웨딩(24인 식대포함 420만원)': 4200000,
+        '하우스웨딩(24인 식대포함 490만원)': 4900000,
+        '가든웨딩(24인 식대포함 620만원)': 6200000
+    },
+
     OPTIONS: {
-        '사진촬영': 500000,
-        '영상촬영': 800000,
-        '플라워장식': 300000,
-        '음향설비': 200000,
-        '사회자': 400000
+        '공간대여 패키지': 600000,
+        '폴라돌상 패키지': 500000,
+        '그란데돌상 패키지': 700000,
+        '생신상 패키지': 200000,
+        '음향.마이크': 80000,
+        '애프터파티 패키지': 1500000
     }
 };
