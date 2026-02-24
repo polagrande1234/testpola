@@ -1,172 +1,297 @@
+// 메인 애플리케이션 로직
+
 class PollagrandeApp {
     constructor() {
         this.consultations = [];
         this.calendar = null;
         this.currentEditId = null;
-        this.calculator = new PricingCalculator();
-        this.modal = null;
+        this.selectedOptions = [];
+        this.selectedPartners = [];
     }
     
+    // 초기화
     async init() {
         await this.loadData();
         this.initCalendar();
         this.initEventListeners();
         this.updateStatistics();
         this.renderTables();
-        this.modal = new bootstrap.Modal(document.getElementById('consultationModal'));
     }
     
+    // 데이터 로드
     async loadData() {
         try {
             this.consultations = await sheetsAPI.fetchAll();
+            console.log('데이터 로드 완료:', this.consultations.length + '건');
         } catch (error) {
             console.error('데이터 로드 실패:', error);
             alert('데이터를 불러오는데 실패했습니다. 페이지를 새로고침해주세요.');
         }
     }
     
+    // 캘린더 초기화
     initCalendar() {
         const calendarEl = document.getElementById('calendar');
         
         this.calendar = new FullCalendar.Calendar(calendarEl, {
-            initialView: window.innerWidth < 768 ? 'listWeek' : 'dayGridMonth',
+            initialView: 'dayGridMonth',
             locale: 'ko',
             headerToolbar: {
                 left: 'prev,next today',
                 center: 'title',
-                right: window.innerWidth < 768 ? 'listWeek' : 'dayGridMonth,timeGridWeek,listWeek'
+                right: 'dayGridMonth,timeGridWeek'
             },
-            events: [],
+            events: this.getCalendarEvents(),
             eventClick: (info) => {
-                const consultation = this.consultations.find(c => c.id === info.event.id);
+                const id = info.event.id;
+                const consultation = this.consultations.find(c => c.ID === id);
                 if (consultation) {
-                    this.openModal(consultation);
+                    this.openEditModal(consultation);
                 }
-            },
-            height: 'auto'
+            }
         });
         
         this.calendar.render();
-        this.updateCalendarEvents();
     }
     
-    updateCalendarEvents() {
-        if (!this.calendar) return;
-        
-        this.calendar.removeAllEvents();
-        
-        this.consultations.forEach(consultation => {
-            if (consultation.eventDate && consultation.contractStatus !== '취소') {
-                this.calendar.addEvent({
-                    id: consultation.id,
-                    title: `${consultation.customerName} - ${consultation.eventSubType}`,
-                    start: consultation.eventDate,
-                    backgroundColor: this.getStatusColor(consultation.contractStatus),
-                    borderColor: this.getStatusColor(consultation.contractStatus)
-                });
-            }
+    // 캘린더 이벤트 데이터 생성
+    getCalendarEvents() {
+        return this.consultations.map(c => {
+            let color = '#ffc107';
+            if (c['계약상태'] === '방문상담') color = '#17a2b8';
+            if (c['계약상태'] === '확정') color = '#dc3545';
+            
+            return {
+                id: c.ID,
+                title: `${c['고객명']} - ${c['행사유형']}`,
+                start: c['행사일자'],
+                backgroundColor: color,
+                borderColor: color
+            };
         });
     }
     
-    getStatusColor(status) {
-        const colors = {
-            '기본상담': '#ffc107',
-            '계약체결': '#17a2b8',
-            '행사완료': '#28a745',
-            '취소': '#dc3545'
-        };
-        return colors[status] || '#6c757d';
+    // 통계 업데이트
+    updateStatistics() {
+        const hopeCount = this.consultations.filter(c => c['계약상태'] === '기본상담').length;
+        const visitCount = this.consultations.filter(c => c['계약상태'] === '방문상담').length;
+        const confirmedCount = this.consultations.filter(c => c['계약상태'] === '확정').length;
+        
+        document.getElementById('hopeCount').textContent = hopeCount;
+        document.getElementById('visitCount').textContent = visitCount;
+        document.getElementById('confirmedCount').textContent = confirmedCount;
+        
+        const currentMonth = new Date().getMonth() + 1;
+        const monthlyRevenue = this.consultations
+            .filter(c => {
+                const eventDate = new Date(c['행사일자']);
+                return eventDate.getMonth() + 1 === currentMonth && c['계약상태'] === '확정';
+            })
+            .reduce((sum, c) => sum + (parseFloat(c['총금액']) || 0), 0);
+        
+        document.getElementById('monthlyRevenue').textContent = pricingCalculator.formatPrice(monthlyRevenue);
     }
     
+    // 테이블 렌더링
+    renderTables() {
+        this.renderConsultTable();
+        this.renderContractTable();
+        this.renderUpcomingEvents();
+    }
+    
+    // 상담 테이블
+    renderConsultTable(filter = null) {
+        const tbody = document.getElementById('consultTable');
+        let data = this.consultations;
+        
+        if (filter) {
+            data = data.filter(c => c['계약상태'] === filter);
+        }
+        
+        tbody.innerHTML = data.map((c, idx) => `
+            <tr onclick="app.openEditModal('${c.ID}')" style="cursor: pointer;">
+                <td>${idx + 1}</td>
+                <td>${c['고객명']}</td>
+                <td>${c['연락처']}</td>
+                <td>${c['행사유형']}</td>
+                <td>${c['행사일자']}</td>
+                <td>
+                    <span class="badge ${this.getStatusBadgeClass(c['계약상태'])}">
+                        ${c['계약상태']}
+                    </span>
+                </td>
+                <td>
+                    <button class="btn btn-sm btn-info" onclick="event.stopPropagation(); app.printConsultation('${c.ID}')">
+                        <i class="bi bi-printer"></i>
+                    </button>
+                    <button class="btn btn-sm btn-danger" onclick="event.stopPropagation(); app.deleteConsultation('${c.ID}')">
+                        <i class="bi bi-trash"></i>
+                    </button>
+                </td>
+            </tr>
+        `).join('');
+    }
+    
+    // 계약 테이블
+    renderContractTable() {
+        const tbody = document.getElementById('contractTable');
+        const contracts = this.consultations.filter(c => c['계약상태'] === '확정');
+        
+        tbody.innerHTML = contracts.map(c => `
+            <tr>
+                <td>${c.ID}</td>
+                <td>${c['고객명']}</td>
+                <td>${c['행사일자']}</td>
+                <td>${pricingCalculator.formatPrice(c['총금액'])}</td>
+                <td>
+                    <span class="badge ${c['잔금'] > 0 ? 'bg-warning' : 'bg-success'}">
+                        ${c['잔금'] > 0 ? '미완료' : '완료'}
+                    </span>
+                </td>
+                <td>
+                    <button class="btn btn-sm btn-primary" onclick="app.printContract('${c.ID}')">
+                        <i class="bi bi-file-pdf"></i>
+                    </button>
+                </td>
+            </tr>
+        `).join('');
+    }
+    
+    // 다가오는 행사
+    renderUpcomingEvents() {
+        const container = document.getElementById('upcomingEvents');
+        const today = new Date();
+        const upcoming = this.consultations
+            .filter(c => new Date(c['행사일자']) >= today)
+            .sort((a, b) => new Date(a['행사일자']) - new Date(b['행사일자']))
+            .slice(0, 5);
+        
+        container.innerHTML = upcoming.map(c => `
+            <div class="list-group-item" onclick="app.openEditModal('${c.ID}')" style="cursor: pointer;">
+                <div class="d-flex w-100 justify-content-between">
+                    <h6 class="mb-1">${c['고객명']}</h6>
+                    <small>${c['행사일자']}</small>
+                </div>
+                <p class="mb-1">${c['행사유형']} - ${c['예상인원']}명</p>
+                <small class="text-muted">${c['행사시간']}</small>
+            </div>
+        `).join('');
+    }
+    
+    // 상태 배지 클래스
+    getStatusBadgeClass(status) {
+        if (status === '기본상담') return 'bg-warning text-dark';
+        if (status === '방문상담') return 'bg-info';
+        if (status === '확정') return 'bg-danger';
+        return 'bg-secondary';
+    }
+    
+    // 이벤트 리스너 초기화
     initEventListeners() {
+        document.getElementById('addConsultBtn').addEventListener('click', () => {
+            this.openNewModal();
+        });
+        
+        document.getElementById('saveConsultBtn').addEventListener('click', () => {
+            this.saveConsultation();
+        });
+        
         document.getElementById('eventCategory').addEventListener('change', (e) => {
             this.updateEventSubTypes(e.target.value);
+            this.toggleMealOptions(e.target.value);
         });
         
-        document.getElementById('eventSubType').addEventListener('change', () => {
-            this.updateMealOptions();
-            this.calculatePrice();
+        document.getElementById('eventSubType').addEventListener('change', (e) => {
+            this.updatePriceCalculation();
+            this.toggleCustomMealInput(e.target.value);
         });
         
         document.getElementById('guestCount').addEventListener('input', () => {
-            this.calculatePrice();
+            this.updatePriceCalculation();
         });
         
-        document.getElementById('mealType').addEventListener('change', (e) => {
-            const customMealGroup = document.getElementById('customMealGroup');
-            if (e.target.value === 'custom') {
-                customMealGroup.style.display = 'block';
-            } else {
-                customMealGroup.style.display = 'none';
-            }
-            this.calculatePrice();
+        document.getElementById('mealType').addEventListener('change', () => {
+            this.updatePriceCalculation();
         });
         
         document.getElementById('customMealPrice').addEventListener('input', () => {
-            this.calculatePrice();
+            this.updatePriceCalculation();
         });
         
-        for (let i = 1; i <= 7; i++) {
-            const checkbox = document.getElementById('opt' + i);
-            if (checkbox) {
-                checkbox.addEventListener('change', () => {
-                    if (i === 7) {
-                        const customGroup = document.getElementById('customOptionGroup');
-                        if (checkbox.checked) {
-                            customGroup.style.display = 'block';
-                        } else {
-                            customGroup.style.display = 'none';
-                        }
-                    }
-                    this.calculatePrice();
-                });
+        document.getElementById('consultSearch').addEventListener('input', (e) => {
+            this.searchConsultations(e.target.value);
+        });
+        
+        document.querySelectorAll('.card[onclick]').forEach(card => {
+            const onclick = card.getAttribute('onclick');
+            if (onclick) {
+                const match = onclick.match(/'([^']+)'/);
+                if (match) {
+                    const status = match[1];
+                    card.addEventListener('click', () => this.filterByStatus(status));
+                }
             }
-        }
-        
-        const customOptionName = document.getElementById('customOptionName');
-        const customOptionPrice = document.getElementById('customOptionPrice');
-        
-        if (customOptionName) {
-            customOptionName.addEventListener('input', () => {
-                this.calculatePrice();
-            });
-        }
-        
-        if (customOptionPrice) {
-            customOptionPrice.addEventListener('input', () => {
-                this.calculatePrice();
-            });
-        }
-        
-        document.getElementById('promotionAmount').addEventListener('input', () => {
-            this.calculatePrice();
         });
-        
-        document.getElementById('depositAmount').addEventListener('input', () => {
-            this.calculatePrice();
-        });
-        
-        for (let i = 1; i <= 7; i++) {
-            const checkbox = document.getElementById('partner' + i);
-            const detail = document.getElementById('partner' + i + 'Detail');
-            if (checkbox && detail) {
-                checkbox.addEventListener('change', (e) => {
-                    if (e.target.checked) {
-                        detail.style.display = 'block';
-                    } else {
-                        detail.style.display = 'none';
-                        detail.value = '';
-                    }
-                });
-            }
-        }
     }
     
+    // 새 상담 모달
+    openNewModal() {
+        this.currentEditId = null;
+        this.selectedOptions = [];
+        this.selectedPartners = [];
+        document.getElementById('consultForm').reset();
+        document.getElementById('eventSubType').disabled = true;
+        document.getElementById('mealOptions').style.display = 'none';
+        document.getElementById('customMealSection').style.display = 'none';
+        this.renderOptionsCheckboxes();
+        this.renderPartnersCheckboxes();
+        const modal = new bootstrap.Modal(document.getElementById('consultModal'));
+        modal.show();
+    }
+    
+    // 수정 모달
+    openEditModal(id) {
+        const consultation = this.consultations.find(c => c.ID === id);
+        if (!consultation) return;
+        
+        this.currentEditId = id;
+        this.selectedOptions = [];
+        this.selectedPartners = [];
+        
+        document.getElementById('customerName').value = consultation['고객명'];
+        document.getElementById('customerPhone').value = consultation['연락처'];
+        document.getElementById('eventDate').value = consultation['행사일자'];
+        document.getElementById('eventTime').value = consultation['행사시간'];
+        document.getElementById('guestCount').value = consultation['예상인원'];
+        document.getElementById('eventCategory').value = consultation['행사카테고리'];
+        
+        this.updateEventSubTypes(consultation['행사카테고리']);
+        this.toggleMealOptions(consultation['행사카테고리']);
+        document.getElementById('eventSubType').value = consultation['행사유형'];
+        this.toggleCustomMealInput(consultation['행사유형']);
+        
+        document.getElementById('promotion').value = consultation['프로모션'] || '';
+        document.getElementById('promotionAmount').value = consultation['프로모션금액'] || 0;
+        document.getElementById('contractStatus').value = consultation['계약상태'];
+        document.getElementById('depositAmount').value = consultation['계약금'] || 0;
+        document.getElementById('paymentMethod').value = consultation['지급방식'] || '현금';
+        document.getElementById('consultMemo').value = consultation['특이사항'] || '';
+        
+        this.renderOptionsCheckboxes();
+        this.renderPartnersCheckboxes();
+        this.updatePriceCalculation();
+        
+        const modal = new bootstrap.Modal(document.getElementById('consultModal'));
+        modal.show();
+    }
+    
+    // 행사 하위 유형 업데이트
     updateEventSubTypes(category) {
         const subTypeSelect = document.getElementById('eventSubType');
+        subTypeSelect.disabled = false;
         subTypeSelect.innerHTML = '<option value="">선택하세요</option>';
         
-        if (category && CONFIG.EVENT_TYPES[category]) {
+        if (CONFIG.EVENT_TYPES[category]) {
             CONFIG.EVENT_TYPES[category].forEach(type => {
                 const option = document.createElement('option');
                 option.value = type;
@@ -174,782 +299,331 @@ class PollagrandeApp {
                 subTypeSelect.appendChild(option);
             });
         }
-        
-        this.updateMealOptions();
-        this.calculatePrice();
     }
     
-    updateMealOptions() {
-        const eventSubType = document.getElementById('eventSubType').value;
-        const mealTypeGroup = document.getElementById('mealTypeGroup');
-        const weddingTypes = ['마이크로웨딩', '하우스웨딩', '가든웨딩'];
-        
-        if (weddingTypes.includes(eventSubType)) {
-            mealTypeGroup.style.display = 'none';
-            document.getElementById('mealType').value = '';
-            document.getElementById('customMealGroup').style.display = 'none';
-        } else if (eventSubType) {
-            mealTypeGroup.style.display = 'block';
+    // 식사 옵션 토글
+    toggleMealOptions(category) {
+        const mealOptions = document.getElementById('mealOptions');
+        if (category === '행사') {
+            mealOptions.style.display = 'block';
         } else {
-            mealTypeGroup.style.display = 'none';
+            mealOptions.style.display = 'none';
         }
     }
     
-    calculatePrice() {
-        const eventSubType = document.getElementById('eventSubType').value;
-        const guestCount = parseInt(document.getElementById('guestCount').value) || 0;
-        const mealType = document.getElementById('mealType').value;
-        const customMealPrice = parseInt(document.getElementById('customMealPrice')?.value) || 0;
-        const promotionAmount = parseInt(document.getElementById('promotionAmount').value) || 0;
-        const depositAmount = parseInt(document.getElementById('depositAmount').value) || 0;
-        
-        this.calculator.calculateBasePrice(eventSubType);
-        this.calculator.calculateMealPrice(guestCount, eventSubType, mealType, customMealPrice);
-        this.calculator.calculateOptionPrice();
-        this.calculator.applyPromotion(promotionAmount);
-        
-        const totalPrice = this.calculator.calculateTotal();
-        const balanceAmount = this.calculator.calculateBalance(depositAmount);
-        
-        document.getElementById('displayBasePrice').textContent = this.formatCurrency(this.calculator.basePrice);
-        document.getElementById('displayMealPrice').textContent = this.formatCurrency(this.calculator.mealPrice);
-        document.getElementById('displayOptionPrice').textContent = this.formatCurrency(this.calculator.optionPrice);
-        document.getElementById('displayPromotion').textContent = '-' + this.formatCurrency(this.calculator.promotionAmount);
-        document.getElementById('displayTotalPrice').textContent = this.formatCurrency(totalPrice);
-        document.getElementById('displayBalance').textContent = this.formatCurrency(balanceAmount);
-    }
-    
-    formatCurrency(amount) {
-        return new Intl.NumberFormat('ko-KR').format(amount) + '원';
-    }
-    
-    openModal(consultation = null) {
-        this.currentEditId = consultation ? consultation.id : null;
-        
-        document.getElementById('modalTitle').textContent = consultation ? '상담 수정' : '새 상담 등록';
-        document.getElementById('consultationForm').reset();
-        
-        document.getElementById('customOptionGroup').style.display = 'none';
-        document.getElementById('customMealGroup').style.display = 'none';
-        document.getElementById('mealTypeGroup').style.display = 'none';
-        
-        for (let i = 1; i <= 7; i++) {
-            const detail = document.getElementById('partner' + i + 'Detail');
-            if (detail) {
-                detail.style.display = 'none';
-            }
+    // 커스텀 식대 입력 토글
+    toggleCustomMealInput(subType) {
+        const customSection = document.getElementById('customMealSection');
+        if (subType === '기업행사' || subType === '대관') {
+            customSection.style.display = 'block';
+        } else {
+            customSection.style.display = 'none';
         }
+    }
+    
+    // 옵션 체크박스 렌더링
+    renderOptionsCheckboxes() {
+        const container = document.getElementById('optionsCheckboxes');
+        container.innerHTML = '';
         
-        if (consultation) {
-            document.getElementById('customerName').value = consultation.customerName || '';
-            document.getElementById('customerPhone').value = consultation.customerPhone || '';
-            document.getElementById('eventDate').value = consultation.eventDate || '';
-            document.getElementById('eventTime').value = consultation.eventTime || '';
-            document.getElementById('guestCount').value = consultation.guestCount || '';
-            document.getElementById('eventCategory').value = consultation.eventCategory || '';
-            
-            this.updateEventSubTypes(consultation.eventCategory);
-            
-            document.getElementById('eventSubType').value = consultation.eventSubType || '';
-            
-            this.updateMealOptions();
-            
-            document.getElementById('promotion').value = consultation.promotion || '';
-            document.getElementById('promotionAmount').value = consultation.promotionAmount || 0;
-            document.getElementById('paymentMethod').value = consultation.paymentMethod || '계좌이체';
-            document.getElementById('depositAmount').value = consultation.depositAmount || 0;
-            document.getElementById('contractStatus').value = consultation.contractStatus || '기본상담';
-            document.getElementById('memo').value = consultation.memo || '';
-            
-            if (consultation.options) {
-                try {
-                    const options = JSON.parse(consultation.options);
-                    options.forEach(opt => {
-                        if (opt.id && opt.id <= 7) {
-                            const checkbox = document.getElementById('opt' + opt.id);
-                            if (checkbox) {
-                                checkbox.checked = true;
-                                if (opt.id === 7) {
-                                    document.getElementById('customOptionGroup').style.display = 'block';
-                                    document.getElementById('customOptionName').value = opt.name || '';
-                                    document.getElementById('customOptionPrice').value = opt.price || 0;
-                                }
-                            }
-                        }
-                    });
-                } catch (e) {
-                    console.error('옵션 파싱 에러:', e);
+        Object.keys(CONFIG.OPTIONS).forEach(optionName => {
+            const div = document.createElement('div');
+            div.className = 'form-check mb-2';
+            div.innerHTML = `
+                <input class="form-check-input option-checkbox" type="checkbox" value="${optionName}" id="opt_${optionName}">
+                <label class="form-check-label" for="opt_${optionName}">
+                    ${optionName} (${pricingCalculator.formatPrice(CONFIG.OPTIONS[optionName])})
+                </label>
+            `;
+            container.appendChild(div);
+        });
+        
+        const customDiv = document.createElement('div');
+        customDiv.className = 'form-check mb-2';
+        customDiv.innerHTML = `
+            <input class="form-check-input option-checkbox" type="checkbox" value="기타옵션" id="opt_기타옵션">
+            <label class="form-check-label" for="opt_기타옵션">기타옵션 (직접입력)</label>
+        `;
+        container.appendChild(customDiv);
+        
+        const customInputDiv = document.createElement('div');
+        customInputDiv.id = 'customOptionInput';
+        customInputDiv.style.display = 'none';
+        customInputDiv.className = 'ms-4 mt-2';
+        customInputDiv.innerHTML = `
+            <input type="text" class="form-control mb-2" id="customOptionName" placeholder="옵션 내용">
+            <input type="number" class="form-control" id="customOptionPrice" placeholder="금액" min="0">
+        `;
+        container.appendChild(customInputDiv);
+        
+        document.querySelectorAll('.option-checkbox').forEach(checkbox => {
+            checkbox.addEventListener('change', () => {
+                if (checkbox.value === '기타옵션') {
+                    document.getElementById('customOptionInput').style.display = checkbox.checked ? 'block' : 'none';
                 }
-            }
-            
-            if (consultation.partners) {
-                try {
-                    const partners = JSON.parse(consultation.partners);
-                    partners.forEach(partner => {
-                        if (partner.id && partner.id <= 7) {
-                            const checkbox = document.getElementById('partner' + partner.id);
-                            const detail = document.getElementById('partner' + partner.id + 'Detail');
-                            if (checkbox && detail) {
-                                checkbox.checked = true;
-                                detail.style.display = 'block';
-                                detail.value = partner.detail || '';
-                            }
-                        }
-                    });
-                } catch (e) {
-                    console.error('협력업체 파싱 에러:', e);
-                }
-            }
-            
-            if (consultation.mealType) {
-                document.getElementById('mealType').value = consultation.mealType;
-                if (consultation.mealType === 'custom') {
-                    document.getElementById('customMealGroup').style.display = 'block';
-                    document.getElementById('customMealPrice').value = consultation.customMealPrice || 0;
-                }
-            }
-        }
-        
-        this.calculatePrice();
-        this.modal.show();
-    }
-    
-    async saveConsultation() {
-        const form = document.getElementById('consultationForm');
-        if (!form.checkValidity()) {
-            form.reportValidity();
-            return;
-        }
-        
-        const options = [];
-        for (let i = 1; i <= 6; i++) {
-            const checkbox = document.getElementById('opt' + i);
-            if (checkbox && checkbox.checked) {
-                const labelText = checkbox.nextElementSibling.textContent;
-                const name = labelText.split(' - ')[0];
-                options.push({
-                    id: i,
-                    name: name,
-                    price: parseInt(checkbox.value)
-                });
-            }
-        }
-        
-        const opt7 = document.getElementById('opt7');
-        if (opt7 && opt7.checked) {
-            const customName = document.getElementById('customOptionName').value;
-            const customPrice = parseInt(document.getElementById('customOptionPrice').value) || 0;
-            options.push({
-                id: 7,
-                name: customName || '기타옵션',
-                price: customPrice
+                this.updatePriceCalculation();
             });
-        }
+        });
         
-        const partners = [];
-        for (let i = 1; i <= 7; i++) {
-            const checkbox = document.getElementById('partner' + i);
-            const detail = document.getElementById('partner' + i + 'Detail');
-            if (checkbox && checkbox.checked) {
-                partners.push({
-                    id: i,
-                    name: checkbox.nextElementSibling.textContent,
-                    detail: detail?.value || ''
-                });
+        document.getElementById('customOptionPrice')?.addEventListener('input', () => {
+            this.updatePriceCalculation();
+        });
+    }
+    
+    // 협력업체 체크박스 렌더링
+    renderPartnersCheckboxes() {
+        const container = document.getElementById('partnersCheckboxes');
+        container.innerHTML = '';
+        
+        CONFIG.PARTNERS.forEach(partnerName => {
+            const div = document.createElement('div');
+            div.className = 'mb-2';
+            div.innerHTML = `
+                <div class="form-check">
+                    <input class="form-check-input partner-checkbox" type="checkbox" value="${partnerName}" id="partner_${partnerName}">
+                    <label class="form-check-label" for="partner_${partnerName}">${partnerName}</label>
+                </div>
+                <input type="text" class="form-control ms-4 mt-1" id="partner_detail_${partnerName}" placeholder="내용 입력" style="display:none;">
+            `;
+            container.appendChild(div);
+        });
+        
+        document.querySelectorAll('.partner-checkbox').forEach(checkbox => {
+            checkbox.addEventListener('change', (e) => {
+                const detailInput = document.getElementById(`partner_detail_${e.target.value}`);
+                detailInput.style.display = e.target.checked ? 'block' : 'none';
+            });
+        });
+    }
+    
+    // 가격 계산 업데이트
+    updatePriceCalculation() {
+        const eventCategory = document.getElementById('eventCategory').value;
+        const eventSubType = document.getElementById('eventSubType').value;
+        const guestCount = parseInt(document.getElementById('guestCount').value) || 0;
+        const promotionAmount = parseInt(document.getElementById('promotionAmount').value) || 0;
+        
+        if (!eventSubType) return;
+        
+        const basePrice = pricingCalculator.calculateBasePrice(eventSubType);
+        
+        let mealPrice = 0;
+        if (eventCategory === '웨딩') {
+            mealPrice = pricingCalculator.calculateWeddingMealPrice(guestCount);
+        } else if (eventCategory === '행사') {
+            if (eventSubType === '기업행사' || eventSubType === '대관') {
+                const customPrice = parseInt(document.getElementById('customMealPrice').value) || 0;
+                mealPrice = pricingCalculator.calculateEventMealPrice(guestCount, null, customPrice);
+            } else {
+                const mealType = document.getElementById('mealType').value;
+                mealPrice = pricingCalculator.calculateEventMealPrice(guestCount, mealType, 0);
             }
         }
         
-        const eventSubType = document.getElementById('eventSubType').value;
-        const guestCount = parseInt(document.getElementById('guestCount').value) || 0;
-        const mealType = document.getElementById('mealType').value;
-        const customMealPrice = parseInt(document.getElementById('customMealPrice')?.value) || 0;
-        const promotionAmount = parseInt(document.getElementById('promotionAmount').value) || 0;
+        this.selectedOptions = [];
+        document.querySelectorAll('.option-checkbox:checked').forEach(checkbox => {
+            if (checkbox.value === '기타옵션') {
+                const customPrice = parseInt(document.getElementById('customOptionPrice').value) || 0;
+                this.selectedOptions.push({ type: '기타옵션', customPrice: customPrice });
+            } else {
+                this.selectedOptions.push({ type: checkbox.value });
+            }
+        });
+        
+        const optionPrice = pricingCalculator.calculateOptionPrice(this.selectedOptions);
+        pricingCalculator.applyPromotion(promotionAmount);
+        
+        pricingCalculator.basePrice = basePrice;
+        pricingCalculator.mealPrice = mealPrice;
+        pricingCalculator.optionPrice = optionPrice;
+        const totalPrice = pricingCalculator.calculateTotal();
+        
+        document.getElementById('basePrice').textContent = pricingCalculator.formatPrice(basePrice);
+        document.getElementById('additionalMealPrice').textContent = pricingCalculator.formatPrice(mealPrice);
+        document.getElementById('optionsPrice').textContent = pricingCalculator.formatPrice(optionPrice);
+        document.getElementById('promotionPrice').textContent = '-' + pricingCalculator.formatPrice(promotionAmount);
+        document.getElementById('totalPrice').textContent = pricingCalculator.formatPrice(totalPrice);
+        
+        this.calculateBalance();
+    }
+    
+    // 잔금 계산
+    calculateBalance() {
+        const totalPrice = pricingCalculator.calculateTotal();
         const depositAmount = parseInt(document.getElementById('depositAmount').value) || 0;
+        const balance = pricingCalculator.calculateBalance(totalPrice, depositAmount);
         
-        this.calculator.calculateBasePrice(eventSubType);
-        this.calculator.calculateMealPrice(guestCount, eventSubType, mealType, customMealPrice);
-        this.calculator.calculateOptionPrice();
-        this.calculator.applyPromotion(promotionAmount);
+        document.getElementById('balanceAmount').value = pricingCalculator.formatPrice(balance);
+    }
+    
+    // 상담 저장
+    async saveConsultation() {
+        this.selectedPartners = [];
+        document.querySelectorAll('.partner-checkbox:checked').forEach(checkbox => {
+            const detail = document.getElementById(`partner_detail_${checkbox.value}`).value;
+            this.selectedPartners.push({ name: checkbox.value, detail: detail });
+        });
         
-        const totalPrice = this.calculator.calculateTotal();
-        const balanceAmount = this.calculator.calculateBalance(depositAmount);
+        const optionsText = this.selectedOptions.map(opt => {
+            if (opt.type === '기타옵션') {
+                const name = document.getElementById('customOptionName').value;
+                return `${name} (${pricingCalculator.formatPrice(opt.customPrice)})`;
+            }
+            return `${opt.type} (${pricingCalculator.formatPrice(CONFIG.OPTIONS[opt.type])})`;
+        }).join(', ') || '없음';
         
-        const data = {
+        const partnersText = this.selectedPartners.map(p => `${p.name}: ${p.detail}`).join(', ') || '없음';
+        
+        const formData = {
             customerName: document.getElementById('customerName').value,
             customerPhone: document.getElementById('customerPhone').value,
             eventDate: document.getElementById('eventDate').value,
             eventTime: document.getElementById('eventTime').value,
-            guestCount: guestCount,
+            guestCount: document.getElementById('guestCount').value,
             eventCategory: document.getElementById('eventCategory').value,
-            eventSubType: eventSubType,
-            mealType: mealType,
-            customMealPrice: customMealPrice,
-            basePrice: this.calculator.basePrice,
-            mealPrice: this.calculator.mealPrice,
-            optionPrice: this.calculator.optionPrice,
+            eventSubType: document.getElementById('eventSubType').value,
+            basePrice: pricingCalculator.basePrice,
+            mealPrice: pricingCalculator.mealPrice,
+            optionPrice: pricingCalculator.optionPrice,
             promotion: document.getElementById('promotion').value,
-            promotionAmount: promotionAmount,
-            totalPrice: totalPrice,
-            depositAmount: depositAmount,
-            balanceAmount: balanceAmount,
+            promotionAmount: parseInt(document.getElementById('promotionAmount').value) || 0,
+            totalPrice: pricingCalculator.calculateTotal(),
+            depositAmount: parseInt(document.getElementById('depositAmount').value) || 0,
+            balanceAmount: pricingCalculator.calculateBalance(
+                pricingCalculator.calculateTotal(),
+                parseInt(document.getElementById('depositAmount').value) || 0
+            ),
             paymentMethod: document.getElementById('paymentMethod').value,
             contractStatus: document.getElementById('contractStatus').value,
-            memo: document.getElementById('memo').value,
-            options: JSON.stringify(options),
-            partners: JSON.stringify(partners)
+            memo: `옵션: ${optionsText} | 협력업체: ${partnersText} | ${document.getElementById('consultMemo').value}`
         };
         
         try {
             if (this.currentEditId) {
-                await sheetsAPI.update(this.currentEditId, data);
+                await sheetsAPI.update(this.currentEditId, formData);
                 alert('수정되었습니다.');
             } else {
-                await sheetsAPI.create(data);
+                await sheetsAPI.create(formData);
                 alert('저장되었습니다.');
             }
             
-            this.modal.hide();
+            const modal = bootstrap.Modal.getInstance(document.getElementById('consultModal'));
+            modal.hide();
+            
             await this.loadData();
+            this.calendar.removeAllEvents();
+            this.calendar.addEventSource(this.getCalendarEvents());
             this.updateStatistics();
             this.renderTables();
-            this.updateCalendarEvents();
+            
         } catch (error) {
-            alert('저장에 실패했습니다: ' + error.message);
+            alert('저장 실패: ' + error.message);
         }
     }
     
+    // 상담 삭제
     async deleteConsultation(id) {
         if (!confirm('정말 삭제하시겠습니까?')) return;
         
         try {
             await sheetsAPI.delete(id);
             alert('삭제되었습니다.');
+            
             await this.loadData();
+            this.calendar.removeAllEvents();
+            this.calendar.addEventSource(this.getCalendarEvents());
             this.updateStatistics();
             this.renderTables();
-            this.updateCalendarEvents();
         } catch (error) {
-            alert('삭제에 실패했습니다: ' + error.message);
+            alert('삭제 실패: ' + error.message);
         }
     }
     
-    updateStatistics() {
-        const total = this.consultations.length;
-        const pending = this.consultations.filter(c => c.contractStatus === '기본상담').length;
-        const contract = this.consultations.filter(c => c.contractStatus === '계약체결').length;
-        const complete = this.consultations.filter(c => c.contractStatus === '행사완료').length;
+    // 상담서 인쇄
+    printConsultation(id) {
+        const consultation = this.consultations.find(c => c.ID === id);
+        if (!consultation) return;
         
-        document.getElementById('stat-total').textContent = total;
-        document.getElementById('stat-pending').textContent = pending;
-        document.getElementById('stat-contract').textContent = contract;
-        document.getElementById('stat-complete').textContent = complete;
-    }
-    
-    renderTables() {
-        const tbody = document.querySelector('#consultationTable tbody');
-        tbody.innerHTML = '';
-        
-        const sortedConsultations = [...this.consultations].sort((a, b) => {
-            if (a.eventDate && b.eventDate) {
-                return new Date(b.eventDate) - new Date(a.eventDate);
+        const optionsText = this.selectedOptions.map(opt => {
+            if (opt.type === '기타옵션') {
+                const name = document.getElementById('customOptionName')?.value || '기타';
+                return `${name} (${pricingCalculator.formatPrice(opt.customPrice)})`;
             }
-            return 0;
+            return `${opt.type} (${pricingCalculator.formatPrice(CONFIG.OPTIONS[opt.type])})`;
+        }).join(', ') || '없음';
+        
+        const partnersText = this.selectedPartners.map(p => `${p.name}: ${p.detail}`).join(' / ') || '없음';
+        
+        const params = new URLSearchParams({
+            customerName: consultation['고객명'],
+            customerPhone: consultation['연락처'],
+            eventDate: consultation['행사일자'],
+            eventTime: consultation['행사시간'],
+            guestCount: consultation['예상인원'],
+            eventCategory: consultation['행사카테고리'],
+            eventSubType: consultation['행사유형'],
+            basePrice: consultation['기본금액'],
+            mealPrice: consultation['추가식대'],
+            optionPrice: consultation['옵션금액'],
+            promotionText: consultation['프로모션'],
+            promotion: consultation['프로모션금액'],
+            totalPrice: consultation['총금액'],
+            depositAmount: consultation['계약금'],
+            balanceAmount: consultation['잔금'],
+            options: optionsText,
+            partners: partnersText
         });
         
-        sortedConsultations.forEach(consultation => {
-            const row = tbody.insertRow();
-            row.innerHTML = `
-                <td>${consultation.id || ''}</td>
-                <td>${consultation.customerName || ''}</td>
-                <td>${consultation.customerPhone || ''}</td>
-                <td>${consultation.eventDate || ''}</td>
-                <td>${consultation.eventSubType || ''}</td>
-                <td>${consultation.guestCount || ''}명</td>
-                <td>${this.formatCurrency(consultation.totalPrice || 0)}</td>
-                <td><span class="badge" style="background-color: ${this.getStatusColor(consultation.contractStatus)}">${consultation.contractStatus || ''}</span></td>
+        window.open('print.html?' + params.toString(), '_blank');
+    }
+    
+    // 계약서 인쇄
+    printContract(id) {
+        this.printConsultation(id);
+    }
+    
+    // 검색
+    searchConsultations(keyword) {
+        const filtered = this.consultations.filter(c => 
+            c['고객명'].includes(keyword) || 
+            c['연락처'].includes(keyword)
+        );
+        
+        const tbody = document.getElementById('consultTable');
+        tbody.innerHTML = filtered.map((c, idx) => `
+            <tr onclick="app.openEditModal('${c.ID}')" style="cursor: pointer;">
+                <td>${idx + 1}</td>
+                <td>${c['고객명']}</td>
+                <td>${c['연락처']}</td>
+                <td>${c['행사유형']}</td>
+                <td>${c['행사일자']}</td>
                 <td>
-                    <button class="btn btn-sm btn-outline-primary" onclick="app.editConsultation('${consultation.id}')" title="수정">
-                        <i class="bi bi-pencil"></i>
-                    </button>
-                    <button class="btn btn-sm btn-outline-info" onclick="app.printConsultation('${consultation.id}')" title="인쇄">
+                    <span class="badge ${this.getStatusBadgeClass(c['계약상태'])}">
+                        ${c['계약상태']}
+                    </span>
+                </td>
+                <td>
+                    <button class="btn btn-sm btn-info" onclick="event.stopPropagation(); app.printConsultation('${c.ID}')">
                         <i class="bi bi-printer"></i>
                     </button>
-                    <button class="btn btn-sm btn-outline-danger" onclick="app.deleteConsultation('${consultation.id}')" title="삭제">
+                    <button class="btn btn-sm btn-danger" onclick="event.stopPropagation(); app.deleteConsultation('${c.ID}')">
                         <i class="bi bi-trash"></i>
                     </button>
                 </td>
-            `;
-        });
+            </tr>
+        `).join('');
     }
     
-    editConsultation(id) {
-        const consultation = this.consultations.find(c => c.id === id);
-        if (consultation) {
-            this.openModal(consultation);
-        }
-    }
-    
-    printConsultation(id) {
-        const consultation = this.consultations.find(c => c.id === id);
-        if (!consultation) return;
-        
-        const printWindow = window.open('', '_blank', 'width=800,height=900');
-        printWindow.document.write(this.generatePrintHTML(consultation));
-        printWindow.document.close();
-        
-        printWindow.onload = function() {
-            setTimeout(() => {
-                printWindow.print();
-            }, 250);
-        };
-    }
-    
-    generatePrintHTML(consultation) {
-        const options = consultation.options ? JSON.parse(consultation.options) : [];
-        const partners = consultation.partners ? JSON.parse(consultation.partners) : [];
-        
-        let optionsHTML = '';
-        if (options.length > 0) {
-            options.forEach(opt => {
-                optionsHTML += `<div class="option-line">${opt.name}: ${this.formatCurrency(opt.price)}</div>`;
-            });
-        } else {
-            optionsHTML = '<p style="color: #999; margin: 10px 0;">선택된 옵션이 없습니다.</p>';
-        }
-        
-        let partnersHTML = '';
-        if (partners.length > 0) {
-            partners.forEach(partner => {
-                partnersHTML += `<div class="partner-line"><strong>${partner.name}:</strong> ${partner.detail || '내용 없음'}</div>`;
-            });
-        } else {
-            partnersHTML = '<p style="color: #999; margin: 10px 0;">선택된 협력업체가 없습니다.</p>';
-        }
-        
-        let mealTypeText = '';
-        if (consultation.mealType) {
-            if (consultation.mealType === 'western') {
-                mealTypeText = '양식 (55,000원/인)';
-            } else if (consultation.mealType === 'korean') {
-                mealTypeText = '한식 (59,000원/인)';
-            } else if (consultation.mealType === 'custom') {
-                mealTypeText = `직접입력 (${this.formatCurrency(consultation.customMealPrice || 0)}/인)`;
-            }
-        }
-        
-        return `
-<!DOCTYPE html>
-<html lang="ko">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>폴라그란데 상담서</title>
-    <style>
-        @page {
-            size: A4;
-            margin: 10mm;
-        }
-        
-        @media print {
-            .no-print { display: none !important; }
-            body { 
-                margin: 0; 
-                padding: 7mm;
-                font-size: 11pt;
-            }
-            .page-break { 
-                page-break-after: always;
-                page-break-inside: avoid;
-            }
-            .print-container {
-                box-shadow: none;
-                padding: 0;
-            }
-        }
-        
-        * {
-            box-sizing: border-box;
-        }
-        
-        body {
-            font-family: 'Malgun Gothic', 'Apple SD Gothic Neo', sans-serif;
-            background-color: #faf8f3;
-            padding: 15px;
-            margin: 0;
-            line-height: 1.6;
-        }
-        
-        .print-container {
-            max-width: 800px;
-            margin: 0 auto;
-            background: white;
-            padding: 30px;
-            box-shadow: 0 0 20px rgba(0,0,0,0.1);
-        }
-        
-        .header-section {
-            text-align: center;
-            padding: 20px 0;
-            border-bottom: 3px solid #8B4513;
-            margin-bottom: 25px;
-        }
-        
-        .header-section h1 {
-            color: #8B4513;
-            font-size: 28px;
-            margin: 0 0 8px 0;
-            font-weight: bold;
-        }
-        
-        .header-section p {
-            color: #666;
-            margin: 4px 0;
-            font-size: 14px;
-        }
-        
-        .section-title {
-            background: linear-gradient(135deg, #8B4513, #D2691E);
-            color: white;
-            padding: 10px 15px;
-            margin: 20px 0 12px 0;
-            border-radius: 6px;
-            font-size: 15px;
-            font-weight: bold;
-        }
-        
-        .info-table {
-            width: 100%;
-            border-collapse: collapse;
-            margin-bottom: 15px;
-        }
-        
-        .info-table td {
-            padding: 10px 12px;
-            border: 1px solid #ddd;
-            font-size: 13px;
-        }
-        
-        .info-table td:first-child {
-            background-color: #f8f9fa;
-            font-weight: bold;
-            width: 30%;
-        }
-        
-        .price-summary {
-            background: #f8f9fa;
-            padding: 15px;
-            border-radius: 8px;
-            margin: 15px 0;
-        }
-        
-        .price-row {
-            display: flex;
-            justify-content: space-between;
-            padding: 7px 0;
-            border-bottom: 1px solid #ddd;
-            font-size: 13px;
-        }
-        
-        .price-row:last-child {
-            border-bottom: none;
-            font-weight: bold;
-            font-size: 16px;
-            color: #8B4513;
-            margin-top: 8px;
-            padding-top: 12px;
-            border-top: 2px solid #8B4513;
-        }
-        
-        .option-line, .partner-line {
-            padding: 6px 0;
-            border-bottom: 1px dashed #e0e0e0;
-            font-size: 13px;
-        }
-        
-        .option-line:last-child, .partner-line:last-child {
-            border-bottom: none;
-        }
-        
-        .notice-box {
-            background: #fff8e1;
-            border-left: 4px solid #ffc107;
-            padding: 15px;
-            margin: 15px 0;
-            border-radius: 4px;
-            page-break-inside: avoid;
-        }
-        
-        .notice-box h3 {
-            color: #f57c00;
-            margin-top: 0;
-            margin-bottom: 10px;
-            font-size: 16px;
-        }
-        
-        .notice-box ul {
-            margin: 8px 0;
-            padding-left: 20px;
-        }
-        
-        .notice-box li {
-            margin: 6px 0;
-            line-height: 1.6;
-            font-size: 13px;
-        }
-        
-        .footer {
-            text-align: center;
-            margin-top: 30px;
-            padding-top: 20px;
-            border-top: 2px solid #8B4513;
-            color: #666;
-            font-size: 13px;
-        }
-        
-        .signature-area {
-            margin-top: 30px;
-            text-align: right;
-            font-size: 13px;
-        }
-        
-        .signature-line {
-            display: inline-block;
-            width: 180px;
-            border-bottom: 2px solid #333;
-            margin-left: 15px;
-            vertical-align: bottom;
-        }
-        
-        .content-box {
-            padding: 12px;
-            background: #fff;
-            border: 1px solid #e0e0e0;
-            border-radius: 6px;
-            margin-bottom: 15px;
-            min-height: 40px;
-        }
-        
-        @media screen and (max-width: 768px) {
-            .print-container {
-                padding: 20px;
-            }
-            
-            .header-section h1 {
-                font-size: 24px;
-            }
-            
-            .info-table td {
-                padding: 8px;
-                font-size: 12px;
-            }
-            
-            .section-title {
-                font-size: 14px;
-                padding: 8px 12px;
-            }
-        }
-    </style>
-</head>
-<body>
-    <div class="print-container">
-        <div class="header-section">
-            <h1>폴라그란데</h1>
-            <p>행사 상담서</p>
-            <p><strong>상담번호:</strong> ${consultation.id}</p>
-        </div>
-        
-        <div class="section-title">1. 기본 정보</div>
-        <table class="info-table">
-            <tr>
-                <td>고객명</td>
-                <td>${consultation.customerName || '-'}</td>
-            </tr>
-            <tr>
-                <td>연락처</td>
-                <td>${consultation.customerPhone || '-'}</td>
-            </tr>
-        </table>
-        
-        <div class="section-title">2. 행사 정보</div>
-        <table class="info-table">
-            <tr>
-                <td>행사일자</td>
-                <td>${consultation.eventDate || '-'}</td>
-            </tr>
-            <tr>
-                <td>행사시간</td>
-                <td>${consultation.eventTime || '-'}</td>
-            </tr>
-            <tr>
-                <td>예상인원</td>
-                <td>${consultation.guestCount || '-'}명</td>
-            </tr>
-        </table>
-        
-        <div class="section-title">3. 행사 유형</div>
-        <table class="info-table">
-            <tr>
-                <td>행사 카테고리</td>
-                <td>${consultation.eventCategory || '-'}</td>
-            </tr>
-            <tr>
-                <td>행사 상세유형</td>
-                <td>${consultation.eventSubType || '-'}</td>
-            </tr>
-            ${mealTypeText ? `
-            <tr>
-                <td>음식 종류</td>
-                <td>${mealTypeText}</td>
-            </tr>
-            ` : ''}
-        </table>
-        
-        <div class="section-title">4. 선택 옵션</div>
-        <div class="content-box">
-            ${optionsHTML}
-        </div>
-        
-        <div class="section-title">5. 협력업체</div>
-        <div class="content-box">
-            ${partnersHTML}
-        </div>
-        
-        <div class="section-title">6. 금액 요약</div>
-        <div class="price-summary">
-            <div class="price-row">
-                <span>기본 금액</span>
-                <span>${this.formatCurrency(consultation.basePrice || 0)}</span>
-            </div>
-            <div class="price-row">
-                <span>추가 식대</span>
-                <span>${this.formatCurrency(consultation.mealPrice || 0)}</span>
-            </div>
-            <div class="price-row">
-                <span>선택 옵션</span>
-                <span>${this.formatCurrency(consultation.optionPrice || 0)}</span>
-            </div>
-            <div class="price-row">
-                <span>프로모션 할인</span>
-                <span>-${this.formatCurrency(consultation.promotionAmount || 0)}</span>
-            </div>
-            <div class="price-row">
-                <span>총 금액</span>
-                <span>${this.formatCurrency(consultation.totalPrice || 0)}</span>
-            </div>
-            <div class="price-row">
-                <span>계약금</span>
-                <span>${this.formatCurrency(consultation.depositAmount || 0)}</span>
-            </div>
-            <div class="price-row">
-                <span>잔금</span>
-                <span>${this.formatCurrency(consultation.balanceAmount || 0)}</span>
-            </div>
-        </div>
-        
-        <table class="info-table">
-            <tr>
-                <td>지급방식</td>
-                <td>${consultation.paymentMethod || '-'}</td>
-            </tr>
-            <tr>
-                <td>계약상태</td>
-                <td>${consultation.contractStatus || '-'}</td>
-            </tr>
-            ${consultation.memo ? `
-            <tr>
-                <td>특이사항</td>
-                <td>${consultation.memo}</td>
-            </tr>
-            ` : ''}
-        </table>
-        
-        <div class="signature-area">
-            <p>상담일자: ${new Date().toLocaleDateString('ko-KR')}</p>
-            <p>고객 서명: <span class="signature-line"></span></p>
-        </div>
-        
-        <div class="page-break"></div>
-        
-        <div class="header-section">
-            <h1>폴라그란데</h1>
-            <p>행사 최종 확인 안내</p>
-        </div>
-        
-        <div class="section-title">7. 행사 최종 확인 안내 (필독)</div>
-        
-        <div class="notice-box">
-            <h3>▣ 계약 및 결제 안내</h3>
-            <ul>
-                <li>계약금 입금 후 계약이 확정되며, 행사 7일 전까지 잔금을 납부하셔야 합니다.</li>
-                <li>계약금은 환불이 불가능하며, 행사 취소 시 환불 규정에 따라 처리됩니다.</li>
-                <li>행사 14일 전 취소 시 계약금의 50%, 7일 전 취소 시 전액 공제됩니다.</li>
-            </ul>
-        </div>
-        
-        <div class="notice-box">
-            <h3>▣ 행사 진행 안내</h3>
-            <ul>
-                <li>행사 당일 최소 2시간 전까지 도착하여 준비해 주시기 바랍니다.</li>
-                <li>인원 변동 사항은 행사 3일 전까지 알려주셔야 정확한 준비가 가능합니다.</li>
-                <li>추가 인원에 따른 식대는 당일 현장에서 정산 가능합니다.</li>
-                <li>행사 시간은 계약서에 명시된 시간을 기준으로 하며, 초과 시 추가 요금이 발생할 수 있습니다.</li>
-            </ul>
-        </div>
-        
-        <div class="notice-box">
-            <h3>▣ 시설 이용 안내</h3>
-            <ul>
-                <li>폴라그란데 시설 내에서는 금연이며, 지정된 흡연 구역을 이용해 주시기 바랍니다.</li>
-                <li>시설 파손 또는 분실 시 원상복구 비용이 청구될 수 있습니다.</li>
-                <li>행사 종료 후 정리 정돈은 고객 부담이며, 추가 정리가 필요한 경우 비용이 발생합니다.</li>
-                <li>외부 음식물 반입은 사전 협의가 필요하며, 케이터링 업체 이용 시 승인이 필요합니다.</li>
-            </ul>
-        </div>
-        
-        <div class="notice-box">
-            <h3>▣ 협력업체 이용 안내</h3>
-            <ul>
-                <li>협력업체 이용은 고객과 업체 간 직접 계약이며, 폴라그란데는 중개 역할만 수행합니다.</li>
-                <li>협력업체와 관련된 문제는 해당 업체와 직접 해결하셔야 합니다.</li>
-                <li>협력업체 변경을 원하시는 경우 사전에 말씀해 주시기 바랍니다.</li>
-            </ul>
-        </div>
-        
-        <div class="notice-box">
-            <h3>▣ 기타 유의사항</h3>
-            <ul>
-                <li>천재지변 및 불가항력적인 사유로 행사가 불가능한 경우, 일정 변경 또는 전액 환불이 가능합니다.</li>
-                <li>행사 당일 긴급 연락처: 043-XXX-XXXX (24시간 운영)</li>
-                <li>주차는 최대 50대까지 무료이며, 초과 시 인근 유료 주차장을 이용하셔야 합니다.</li>
-                <li>행사 촬영본은 홍보 목적으로 사용될 수 있으며, 거부 시 사전에 말씀해 주시기 바랍니다.</li>
-            </ul>
-        </div>
-        
-        <div class="footer">
-            <p><strong>폴라그란데</strong></p>
-            <p>주소: 충북 청주시 서원구 1순환로 645</p>
-            <p>전화: 043-XXX-XXXX | 이메일: info@pollagrande.com</p>
-            <p>사업자등록번호: XXX-XX-XXXXX</p>
-            <p style="margin-top: 15px; color: #999; font-size: 12px;">본 상담서는 계약서가 아니며, 정식 계약서 작성 후 효력이 발생합니다.</p>
-        </div>
-        
-        <div class="no-print" style="text-align: center; margin-top: 30px; padding: 20px;">
-            <button onclick="window.print()" style="padding: 12px 30px; background: #8B4513; color: white; border: none; border-radius: 8px; cursor: pointer; font-size: 16px; margin-right: 10px;">
-                <i class="bi bi-printer"></i> 인쇄하기
-            </button>
-            <button onclick="window.close()" style="padding: 12px 30px; background: #6c757d; color: white; border: none; border-radius: 8px; cursor: pointer; font-size: 16px;">
-                <i class="bi bi-x-circle"></i> 닫기
-            </button>
-        </div>
-    </div>
-</body>
-</html>
-        `;
+    // 상태별 필터
+    filterByStatus(status) {
+        this.renderConsultTable(status);
     }
 }
 
+// 전역 인스턴스
 const app = new PollagrandeApp();
 
+// 페이지 로드 시 초기화
 document.addEventListener('DOMContentLoaded', () => {
     app.init();
 });

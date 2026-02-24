@@ -1,3 +1,5 @@
+// 가격 계산 로직
+
 class PricingCalculator {
     constructor() {
         this.basePrice = 0;
@@ -6,61 +8,81 @@ class PricingCalculator {
         this.promotionAmount = 0;
     }
     
+    // 기본 금액 계산
     calculateBasePrice(eventSubType) {
         this.basePrice = CONFIG.PRICES[eventSubType] || 0;
         return this.basePrice;
     }
     
-    calculateMealPrice(guestCount, eventSubType, mealType, customMealPrice = 0) {
-        const weddingTypes = ['마이크로웨딩', '하우스웨딩', '가든웨딩'];
-        
-        if (weddingTypes.includes(eventSubType)) {
-            const baseGuests = 24;
-            const additionalGuests = Math.max(0, guestCount - baseGuests);
-            this.mealPrice = additionalGuests * 55000;
+    // 웨딩 추가 식대 계산 (25인부터 추가)
+    calculateWeddingMealPrice(guestCount) {
+        if (guestCount <= 24) {
+            this.mealPrice = 0;
         } else {
-            if (mealType === 'custom') {
-                this.mealPrice = guestCount * customMealPrice;
-            } else if (mealType === 'western' || mealType === 'korean') {
-                const pricePerPerson = CONFIG.MEAL_PRICES[mealType] || 0;
-                this.mealPrice = guestCount * pricePerPerson;
-            } else {
-                this.mealPrice = 0;
-            }
+            const additionalGuests = guestCount - 24;
+            this.mealPrice = additionalGuests * 55000;
         }
-        
         return this.mealPrice;
     }
     
-    calculateOptionPrice() {
+    // 행사 식대 계산
+    calculateEventMealPrice(guestCount, mealType, customPrice = 0) {
+        if (customPrice > 0) {
+            // 기업행사/대관 - 직접입력
+            this.mealPrice = guestCount * customPrice;
+        } else {
+            // 돌잔치/가족행사 - 양식/한식
+            const pricePerPerson = CONFIG.MEAL_PRICES[mealType] || 0;
+            this.mealPrice = guestCount * pricePerPerson;
+        }
+        return this.mealPrice;
+    }
+    
+    // 옵션 금액 계산
+    calculateOptionPrice(selectedOptions) {
         this.optionPrice = 0;
-        
-        for (let i = 1; i <= 6; i++) {
-            const checkbox = document.getElementById('opt' + i);
-            if (checkbox && checkbox.checked) {
-                this.optionPrice += parseInt(checkbox.value) || 0;
+        selectedOptions.forEach(option => {
+            if (option.type === '기타옵션' && option.customPrice) {
+                this.optionPrice += option.customPrice;
+            } else {
+                this.optionPrice += CONFIG.OPTIONS[option.type] || 0;
             }
-        }
-        
-        const opt7 = document.getElementById('opt7');
-        if (opt7 && opt7.checked) {
-            const customPrice = parseInt(document.getElementById('customOptionPrice')?.value) || 0;
-            this.optionPrice += customPrice;
-        }
-        
+        });
         return this.optionPrice;
     }
     
+    // 프로모션 적용
     applyPromotion(amount) {
-        this.promotionAmount = Math.max(0, parseInt(amount) || 0);
+        this.promotionAmount = Math.max(0, amount);
         return this.promotionAmount;
     }
     
+    // 총 금액 계산
     calculateTotal() {
         return Math.max(0, this.basePrice + this.mealPrice + this.optionPrice - this.promotionAmount);
     }
     
-    calculateBalance(depositAmount) {
-        return Math.max(0, this.calculateTotal() - (parseInt(depositAmount) || 0));
+    // 잔금 계산
+    calculateBalance(totalPrice, depositAmount) {
+        return Math.max(0, totalPrice - depositAmount);
+    }
+    
+    // 금액 포맷팅
+    formatPrice(price) {
+        return '₩' + price.toLocaleString('ko-KR');
+    }
+    
+    // 전체 계산 결과 반환
+    getCalculation() {
+        return {
+            basePrice: this.basePrice,
+            mealPrice: this.mealPrice,
+            optionPrice: this.optionPrice,
+            promotionAmount: this.promotionAmount,
+            totalPrice: this.calculateTotal()
+        };
     }
 }
+
+// 전역 인스턴스
+const pricingCalculator = new PricingCalculator();

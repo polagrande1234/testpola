@@ -6,6 +6,7 @@ function doPost(e) {
     const data = JSON.parse(e.postData.contents);
     
     if (data.action === 'create') {
+      // 새 예약 추가
       const id = 'C' + new Date().getTime();
       const row = [
         id,
@@ -16,8 +17,6 @@ function doPost(e) {
         data.guestCount || '',
         data.eventCategory || '',
         data.eventSubType || '',
-        data.mealType || '',
-        data.customMealPrice || 0,
         data.basePrice || 0,
         data.mealPrice || 0,
         data.optionPrice || 0,
@@ -29,71 +28,59 @@ function doPost(e) {
         data.paymentMethod || '',
         data.contractStatus || '기본상담',
         data.memo || '',
-        data.options || '',
-        data.partners || '',
         new Date().toISOString()
       ];
       sheet.appendRow(row);
       return ContentService.createTextOutput(JSON.stringify({
         success: true,
-        message: '저장되었습니다',
         id: id
       })).setMimeType(ContentService.MimeType.JSON);
     }
     
     if (data.action === 'update') {
+      // 예약 수정
       const values = sheet.getDataRange().getValues();
       for (let i = 1; i < values.length; i++) {
         if (values[i][0] === data.id) {
-          sheet.getRange(i + 1, 2, 1, 22).setValues([[
-            data.customerName || '',
-            data.customerPhone || '',
-            data.eventDate || '',
-            data.eventTime || '',
-            data.guestCount || '',
-            data.eventCategory || '',
-            data.eventSubType || '',
-            data.mealType || '',
-            data.customMealPrice || 0,
-            data.basePrice || 0,
-            data.mealPrice || 0,
-            data.optionPrice || 0,
-            data.promotion || '',
-            data.promotionAmount || 0,
-            data.totalPrice || 0,
-            data.depositAmount || 0,
-            data.balanceAmount || 0,
-            data.paymentMethod || '',
-            data.contractStatus || '기본상담',
-            data.memo || '',
-            data.options || '',
-            data.partners || ''
-          ]]);
-          return ContentService.createTextOutput(JSON.stringify({
-            success: true,
-            message: '수정되었습니다'
-          })).setMimeType(ContentService.MimeType.JSON);
+          sheet.getRange(i + 1, 2).setValue(data.customerName || '');
+          sheet.getRange(i + 1, 3).setValue(data.customerPhone || '');
+          sheet.getRange(i + 1, 4).setValue(data.eventDate || '');
+          sheet.getRange(i + 1, 5).setValue(data.eventTime || '');
+          sheet.getRange(i + 1, 6).setValue(data.guestCount || '');
+          sheet.getRange(i + 1, 7).setValue(data.eventCategory || '');
+          sheet.getRange(i + 1, 8).setValue(data.eventSubType || '');
+          sheet.getRange(i + 1, 9).setValue(data.basePrice || 0);
+          sheet.getRange(i + 1, 10).setValue(data.mealPrice || 0);
+          sheet.getRange(i + 1, 11).setValue(data.optionPrice || 0);
+          sheet.getRange(i + 1, 12).setValue(data.promotion || '');
+          sheet.getRange(i + 1, 13).setValue(data.promotionAmount || 0);
+          sheet.getRange(i + 1, 14).setValue(data.totalPrice || 0);
+          sheet.getRange(i + 1, 15).setValue(data.depositAmount || 0);
+          sheet.getRange(i + 1, 16).setValue(data.balanceAmount || 0);
+          sheet.getRange(i + 1, 17).setValue(data.paymentMethod || '');
+          sheet.getRange(i + 1, 18).setValue(data.contractStatus || '');
+          sheet.getRange(i + 1, 19).setValue(data.memo || '');
+          break;
         }
       }
+      return ContentService.createTextOutput(JSON.stringify({
+        success: true
+      })).setMimeType(ContentService.MimeType.JSON);
     }
     
     if (data.action === 'delete') {
+      // 예약 삭제
       const values = sheet.getDataRange().getValues();
       for (let i = 1; i < values.length; i++) {
         if (values[i][0] === data.id) {
           sheet.deleteRow(i + 1);
-          return ContentService.createTextOutput(JSON.stringify({
-            success: true,
-            message: '삭제되었습니다'
-          })).setMimeType(ContentService.MimeType.JSON);
+          break;
         }
       }
+      return ContentService.createTextOutput(JSON.stringify({
+        success: true
+      })).setMimeType(ContentService.MimeType.JSON);
     }
-    
-    return ContentService.createTextOutput(JSON.stringify({
-      success: false,
-      error: '알 수 없는 액션입니다'
-    })).setMimeType(ContentService.MimeType.JSON);
     
   } catch (error) {
     return ContentService.createTextOutput(JSON.stringify({

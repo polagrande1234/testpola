@@ -1,8 +1,11 @@
+// Google Sheets API 연동 함수들
+
 class SheetsAPI {
     constructor(apiUrl) {
         this.apiUrl = apiUrl;
     }
     
+    // 모든 데이터 가져오기
     async fetchAll() {
         try {
             const response = await fetch(this.apiUrl);
@@ -19,6 +22,7 @@ class SheetsAPI {
         }
     }
     
+    // 새 예약 추가
     async create(data) {
         try {
             const response = await fetch(this.apiUrl, {
@@ -40,6 +44,7 @@ class SheetsAPI {
         }
     }
     
+    // 예약 수정
     async update(id, data) {
         try {
             const response = await fetch(this.apiUrl, {
@@ -61,6 +66,7 @@ class SheetsAPI {
         }
     }
     
+    // 예약 삭제
     async delete(id) {
         try {
             const response = await fetch(this.apiUrl, {
@@ -83,4 +89,5 @@ class SheetsAPI {
     }
 }
 
+// 전역 인스턴스 생성
 const sheetsAPI = new SheetsAPI(CONFIG.API_URL);
