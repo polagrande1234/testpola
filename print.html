@@ -1,0 +1,370 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>폴라그란데 상담서</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
+    <style>
+        @media print {
+            .no-print { display: none !important; }
+            body { 
+                margin: 0; 
+                padding: 7mm;
+                font-size: 10.5pt;
+            }
+            .print-container {
+                box-shadow: none;
+                padding: 0;
+            }
+            .header-section { padding: 10px 0 !important; margin-bottom: 6px !important; }
+            .header-section h1 { font-size: 24px !important; margin-bottom: 0 !important; }
+            .header-section p, .header-section h5 { display: none !important; }
+            .section-title { margin: 4px 0 3px !important; padding: 3px 8px !important; font-size: 12px !important; }
+            .info-row { margin-bottom: 2px !important; padding: 2px 0 !important; }
+            .info-label, .info-value { font-size: 10.5px !important; }
+            .price-summary { padding: 8px !important; margin-top: 6px !important; }
+            .price-summary h5 { margin-bottom: 6px !important; font-size: 12px !important; }
+            .price-row { padding: 2px 0 !important; font-size: 10.5px !important; }
+            .price-row:last-child { margin-top: 4px !important; padding-top: 6px !important; font-size: 12px !important; }
+            .total-price { font-size: 1.15rem !important; }
+            .refund-box { padding: 8px !important; margin-top: 6px !important; }
+            .refund-box .section-title { margin-top: 0 !important; }
+            .refund-text { font-size: 10px !important; line-height: 1.35 !important; }
+            .sign-box { margin-top: 6px !important; }
+            .sign-card { padding: 8px !important; font-size: 10.5px !important; }
+            .avoid-break { break-inside: avoid; page-break-inside: avoid; }
+        }
+        
+        body {
+            font-family: 'Malgun Gothic', sans-serif;
+            background: white;
+            padding: 10px;
+            font-size: 11pt;
+        }
+        
+        .print-container {
+            max-width: 190mm;
+            min-height: 277mm;
+            max-height: 277mm;
+            margin: 0 auto;
+            background: white;
+            padding: 15px;
+            box-shadow: 0 0 10px rgba(0,0,0,0.1);
+        }
+        
+        .header-section {
+            text-align: center;
+            margin-bottom: 15px;
+            padding: 12px;
+            background: linear-gradient(135deg, #A0522D 0%, #8B4513 100%);
+            color: white;
+            border-radius: 8px;
+        }
+        
+        .header-section h1 {
+            font-family: 'Georgia', serif;
+            font-size: 1.6rem;
+            font-weight: bold;
+            letter-spacing: 2px;
+            margin-bottom: 3px;
+        }
+        
+        .section-title {
+            background-color: #f0f0f0;
+            padding: 5px 10px;
+            margin-top: 12px;
+            margin-bottom: 8px;
+            border-left: 4px solid #A0522D;
+            font-weight: bold;
+            font-size: 0.9rem;
+            color: #333;
+        }
+        
+        .info-row {
+            display: flex;
+            margin-bottom: 6px;
+            padding: 4px 0;
+            font-size: 0.85rem;
+            border-bottom: 1px solid #f0f0f0;
+        }
+        
+        .info-label {
+            width: 100px;
+            font-weight: bold;
+            color: #666;
+        }
+        
+        .info-value {
+            flex: 1;
+            color: #333;
+        }
+        
+        .price-summary {
+            background: linear-gradient(135deg, #e3f2fd 0%, #ffffff 100%);
+            border: 2px solid #007bff;
+            border-radius: 8px;
+            padding: 12px;
+            margin-top: 12px;
+        }
+        
+        .price-summary h5 {
+            font-size: 0.95rem;
+            margin-bottom: 10px;
+        }
+        
+        .price-row {
+            display: flex;
+            justify-content: space-between;
+            padding: 4px 0;
+            border-bottom: 1px dashed #ccc;
+            font-size: 0.85rem;
+        }
+        
+        .price-row:last-child {
+            border-bottom: none;
+            border-top: 2px solid #333;
+            margin-top: 6px;
+            padding-top: 8px;
+            font-size: 1.05rem;
+            font-weight: bold;
+        }
+        
+        .total-price {
+            color: #007bff;
+            font-size: 1.3rem;
+        }
+        
+        .refund-box {
+            border: 1px solid #f0ad4e;
+            background: #fff8e1;
+            padding: 10px;
+            border-radius: 10px;
+            margin-top: 8px;
+        }
+        
+        .refund-text {
+            font-size: 0.80rem;
+            line-height: 1.45;
+            white-space: pre-line;
+        }
+        
+        .sign-box {
+            margin-top: 10px;
+        }
+        
+        .sign-card {
+            flex: 1;
+            border: 1px solid #dee2e6;
+            border-radius: 10px;
+            padding: 10px;
+            font-size: 0.9rem;
+        }
+        
+        .print-button {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            z-index: 1000;
+        }
+        
+        @page {
+            size: A4;
+            margin: 8mm;
+        }
+    </style>
+</head>
+<body>
+    <!-- 인쇄 버튼 -->
+    <div class="no-print print-button">
+        <button onclick="window.print()" class="btn btn-primary btn-lg">
+            <i class="bi bi-printer"></i> 인쇄
+        </button>
+    </div>
+
+    <div class="print-container">
+        <!-- 헤더 -->
+        <div class="header-section">
+            <h1>POLAGRANDE CONTRACT</h1>
+        </div>
+
+        <!-- 2단 레이아웃: 기본 정보 + 행사 정보 -->
+        <div class="row avoid-break" style="margin-bottom: 6px;">
+            <div class="col-6">
+                <div class="section-title">📝 기본 정보</div>
+                <div class="info-row">
+                    <div class="info-label">고객명</div>
+                    <div class="info-value" id="printCustomerName">-</div>
+                </div>
+                <div class="info-row">
+                    <div class="info-label">연락처</div>
+                    <div class="info-value" id="printCustomerPhone">-</div>
+                </div>
+            </div>
+            <div class="col-6">
+                <div class="section-title">📅 행사 정보</div>
+                <div class="info-row">
+                    <div class="info-label">희망 일자</div>
+                    <div class="info-value" id="printEventDate">-</div>
+                </div>
+                <div class="info-row">
+                    <div class="info-label">행사 시간</div>
+                    <div class="info-value" id="printEventTime">-</div>
+                </div>
+                <div class="info-row">
+                    <div class="info-label">예상 인원</div>
+                    <div class="info-value" id="printGuestCount">-</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 행사 유형 + 추가 옵션 -->
+        <div class="row avoid-break" style="margin-bottom: 6px;">
+            <div class="col-6">
+                <div class="section-title">🎉 행사 유형</div>
+                <div class="info-row">
+                    <div class="info-label">카테고리</div>
+                    <div class="info-value" id="printEventCategory">-</div>
+                </div>
+                <div class="info-row">
+                    <div class="info-label">상세 유형</div>
+                    <div class="info-value" id="printEventSubType">-</div>
+                </div>
+            </div>
+            <div class="col-6">
+                <div class="section-title">➕ 추가 옵션</div>
+                <div class="info-row">
+                    <div class="info-label">선택 옵션</div>
+                    <div class="info-value" id="printOptions">없음</div>
+                </div>
+                <div class="info-row" id="printPromotionSection" style="display: none;">
+                    <div class="info-label">프로모션</div>
+                    <div class="info-value" id="printPromotionText">-</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 금액 요약 -->
+        <div class="price-summary avoid-break">
+            <h5 style="color: #007bff; margin-bottom: 10px;">
+                <i class="bi bi-calculator"></i> 금액 요약
+            </h5>
+            <div class="price-row">
+                <span>기본 금액</span>
+                <span id="printBasePrice">₩0</span>
+            </div>
+            <div class="price-row">
+                <span>추가 식대</span>
+                <span id="printMealPrice">₩0</span>
+            </div>
+            <div class="price-row">
+                <span>선택 옵션</span>
+                <span id="printOptionPrice">₩0</span>
+            </div>
+            <div class="price-row">
+                <span>프로모션 할인</span>
+                <span id="printPromotion" style="color: red;">-₩0</span>
+            </div>
+            <div class="price-row">
+                <span>총 금액</span>
+                <span class="total-price" id="printTotalPrice">₩0</span>
+            </div>
+
+            <div class="price-row" style="border-top: 1px solid #dee2e6; margin-top: 6px; padding-top: 6px;">
+                <span>계약금</span>
+                <span id="printDepositAmount">₩0</span>
+            </div>
+            <div class="price-row">
+                <span>잔금</span>
+                <span id="printBalanceAmount">₩0</span>
+            </div>
+        </div>
+
+        <!-- 안내문 -->
+        <div class="refund-box avoid-break">
+            <div class="section-title">📌 행사 최종 확정 안내 (필독)</div>
+            <div class="refund-text">
+행사 최종 확정 안내 (필독)
+
+본 내역서는 원활한 행사 준비를 위한 최종 확정 기준 문서입니다.
+확정된 인원 및 구성에 따라 식자재 준비, 인력 배치, 공간 세팅이 진행됩니다.
+
+최종 인원 확정
+- 행사 준비를 위해 행사 10일 전까지 최종 인원 확정을 부탁드립니다.
+- 확정 인원 기준으로 식사 및 좌석 세팅이 준비되며, 이후 인원 감소에 따른 식대 환불은 어렵습니다.
+
+잔금은 행사일 기준 7일 전까지 정산을 부탁드립니다.
+안정적인 행사 준비를 위한 절차이오니 협조 부탁드립니다.
+
+입금 계좌
+신한은행 110-590-705330
+예금주 : 폴라그란데
+
+입금 시 행사자 성함(또는 예약자 성함)으로 기재 부탁드립니다.
+            </div>
+        </div>
+
+        <!-- 서명란 -->
+        <div class="sign-box avoid-break">
+            <div class="section-title">✍️ 서명</div>
+            <div style="display:flex; gap: 16px;">
+                <div class="sign-card">
+                    계약자(고객) : ____________________ (인)
+                </div>
+                <div class="sign-card">
+                    폴라그란데 : ____________________ (인)
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // URL 파라미터에서 데이터 가져오기
+        window.addEventListener('DOMContentLoaded', function() {
+            const params = new URLSearchParams(window.location.search);
+            
+            // 기본 정보
+            document.getElementById('printCustomerName').textContent = params.get('customerName') || '-';
+            document.getElementById('printCustomerPhone').textContent = params.get('customerPhone') || '-';
+            
+            // 행사 정보
+            document.getElementById('printEventDate').textContent = params.get('eventDate') || '-';
+            document.getElementById('printEventTime').textContent = params.get('eventTime') || '-';
+            document.getElementById('printGuestCount').textContent = (params.get('guestCount') || '-') + '명';
+            
+            // 행사 유형
+            document.getElementById('printEventCategory').textContent = params.get('eventCategory') || '-';
+            document.getElementById('printEventSubType').textContent = params.get('eventSubType') || '-';
+            
+            // 추가 옵션
+            const options = params.get('options') || '없음';
+            document.getElementById('printOptions').textContent = options;
+            
+            // 금액 정보
+            const basePrice = parseInt(params.get('basePrice') || 0);
+            const mealPrice = parseInt(params.get('mealPrice') || 0);
+            const optionPrice = parseInt(params.get('optionPrice') || 0);
+            const promotion = parseInt(params.get('promotion') || 0);
+            const totalPrice = parseInt(params.get('totalPrice') || 0);
+            const depositAmount = parseInt(params.get('depositAmount') || 0);
+            const balanceAmount = parseInt(params.get('balanceAmount') || 0);
+            
+            document.getElementById('printBasePrice').textContent = '₩' + basePrice.toLocaleString();
+            document.getElementById('printMealPrice').textContent = '₩' + mealPrice.toLocaleString();
+            document.getElementById('printOptionPrice').textContent = '₩' + optionPrice.toLocaleString();
+            document.getElementById('printPromotion').textContent = '-₩' + promotion.toLocaleString();
+            document.getElementById('printTotalPrice').textContent = '₩' + totalPrice.toLocaleString();
+            document.getElementById('printDepositAmount').textContent = '₩' + depositAmount.toLocaleString();
+            document.getElementById('printBalanceAmount').textContent = '₩' + balanceAmount.toLocaleString();
+            
+            // 프로모션
+            const promotionText = params.get('promotionText') || '';
+            if (promotionText && promotionText !== '') {
+                document.getElementById('printPromotionSection').style.display = 'flex';
+                document.getElementById('printPromotionText').textContent = promotionText;
+            }
+        });
+    </script>
+</body>
+</html>
