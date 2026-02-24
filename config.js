@@ -1,5 +1,5 @@
 const CONFIG = {
-    API_URL: 'https://script.google.com/macros/s/AKfycbyxlB-aT5lD1ymw0Kqpv-AIlJfOMrExXZzANPj67jQ66Zpgto0VvvUmnnk76Q2pFL-DNg/exec',
+    API_URL: 'https://script.google.com/macros/s/AKfycbw2YsFa9EAvXuSdycPDA5Lt6WWonUoM1GKBkRvFnkJYO5rW7schBJxpxMgNBY27w3OUQw/exec',
     
     EVENT_TYPES: {
         '웨딩': ['마이크로웨딩', '하우스웨딩', '가든웨딩'],
