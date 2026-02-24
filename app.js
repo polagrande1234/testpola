@@ -218,6 +218,14 @@ class PollagrandeApp {
             this.updatePriceCalculation();
         });
         
+        document.getElementById('promotionAmount').addEventListener('input', () => {
+            this.updatePriceCalculation();
+        });
+        
+        document.getElementById('depositAmount').addEventListener('input', () => {
+            this.calculateBalance();
+        });
+        
         document.getElementById('consultSearch').addEventListener('input', (e) => {
             this.searchConsultations(e.target.value);
         });
