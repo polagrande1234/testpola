@@ -1,38 +1,68 @@
+// 가격 계산 로직
 
 class PricingCalculator {
-
-    static calculate(data) {
-
-        let base = 0;
-        let meal = 0;
-        let option = 0;
-
-        if(data.category === '웨딩'){
-            base = CONFIG.WEDDING_PRICES[data.subType] || 0;
-            if(data.guestCount > CONFIG.WEDDING_BASE_GUEST){
-                meal = (data.guestCount - CONFIG.WEDDING_BASE_GUEST) * CONFIG.WEDDING_EXTRA_MEAL;
-            }
-        }else{
-
-            if(data.subType === '기업행사' || data.subType === '대관'){
-                meal = data.guestCount * (data.customMeal || 0);
-            }else{
-                meal = data.guestCount * (CONFIG.MEAL_PRICES[data.mealType] || 0);
-            }
-        }
-
-        if(data.options){
-            data.options.forEach(o=>{
-                option += CONFIG.OPTIONS[o] || 0;
-            });
-        }
-
-        option += data.customOption || 0;
-
-        const total = base + meal + option - (data.promotion || 0);
-
+    constructor() {
+        this.basePrice = 0;
+        this.mealPrice = 0;
+        this.optionPrice = 0;
+        this.promotionAmount = 0;
+    }
+    
+    // 기본 금액 계산
+    calculateBasePrice(eventSubType) {
+        this.basePrice = CONFIG.PRICES[eventSubType] || 0;
+        return this.basePrice;
+    }
+    
+    // 추가 식대 계산
+    calculateMealPrice(guestCount, mealType, baseGuests = 0) {
+        const additionalGuests = Math.max(0, guestCount - baseGuests);
+        const pricePerPerson = CONFIG.MEAL_PRICES[mealType] || 0;
+        this.mealPrice = additionalGuests * pricePerPerson;
+        return this.mealPrice;
+    }
+    
+    // 옵션 금액 계산
+    calculateOptionPrice(selectedOptions) {
+        this.optionPrice = 0;
+        selectedOptions.forEach(option => {
+            this.optionPrice += CONFIG.OPTIONS[option] || 0;
+        });
+        return this.optionPrice;
+    }
+    
+    // 프로모션 적용
+    applyPromotion(amount) {
+        this.promotionAmount = Math.max(0, amount);
+        return this.promotionAmount;
+    }
+    
+    // 총 금액 계산
+    calculateTotal() {
+        return Math.max(0, this.basePrice + this.mealPrice + this.optionPrice - this.promotionAmount);
+    }
+    
+    // 잔금 계산
+    calculateBalance(totalPrice, depositAmount) {
+        return Math.max(0, totalPrice - depositAmount);
+    }
+    
+    // 금액 포맷팅
+    formatPrice(price) {
+        return '₩' + price.toLocaleString('ko-KR');
+    }
+    
+    // 전체 계산 결과 반환
+    getCalculation() {
         return {
-            base, meal, option, total
+            basePrice: this.basePrice,
+            mealPrice: this.mealPrice,
+            optionPrice: this.optionPrice,
+            promotionAmount: this.promotionAmount,
+            totalPrice: this.calculateTotal()
         };
     }
 }
+
+// 전역 인스턴스
+const pricingCalculator = new PricingCalculator();
