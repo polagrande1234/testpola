@@ -1,0 +1,103 @@
+/* extensions/ext.css
+   - 연베이지 문서형 느낌 + 모바일 깨짐 최소화
+   - 기존 스타일을 덮어쓰되, 과도한 변경은 피함
+*/
+:root{
+  --ext-paper:#fbf6ea;
+  --ext-line:#e7ddc6;
+  --ext-ink:#2b2b2b;
+}
+
+/* 모달 내부 블록 */
+.ext-block{
+  background: var(--ext-paper);
+  border: 1px solid var(--ext-line);
+  border-radius: 14px;
+  padding: 14px;
+  margin: 6px 0 14px;
+}
+
+.ext-title{
+  font-weight: 800;
+  color: var(--ext-ink);
+  margin-bottom: 10px;
+  display:flex;
+  gap:8px;
+  align-items:center;
+  flex-wrap:wrap;
+}
+
+.ext-badge{
+  display:inline-block;
+  background: rgba(139,69,19,0.12);
+  border: 1px solid rgba(139,69,19,0.22);
+  color: rgba(139,69,19,0.95);
+  padding: 2px 8px;
+  border-radius: 999px;
+  font-size: 12px;
+}
+
+.ext-card{
+  background: rgba(255,255,255,0.65);
+  border: 1px solid var(--ext-line);
+  border-radius: 12px;
+  padding: 12px;
+  height: 100%;
+}
+
+.ext-card-title{
+  font-weight: 900;
+  color: rgba(139,69,19,0.95);
+  margin-bottom: 8px;
+  font-size: 13px;
+}
+
+.ext-row{
+  display:flex;
+  gap:10px;
+  align-items:center;
+  margin-bottom: 8px;
+}
+
+.ext-label{
+  width: 110px;
+  font-weight: 800;
+  color: #5c5c5c;
+  font-size: 12.5px;
+}
+
+.ext-hint{
+  font-size: 12px;
+  color: #6b6b6b;
+}
+
+.ext-other{
+  display:flex;
+  gap:8px;
+  align-items:center;
+  flex-wrap:wrap;
+  background: rgba(255,255,255,0.75);
+  border: 1px dashed rgba(0,0,0,0.18);
+  padding: 10px;
+  border-radius: 10px;
+}
+
+.ext-partner-row{
+  display:flex;
+  gap:8px;
+  align-items:center;
+  padding: 8px 10px;
+  border: 1px dashed rgba(0,0,0,0.16);
+  border-radius: 10px;
+  background: rgba(255,255,255,0.6);
+}
+
+.ext-partner-row input[type="text"]{
+  flex:1;
+  min-width: 140px;
+}
+
+@media (max-width: 576px){
+  .ext-row{ flex-direction: column; align-items: stretch; }
+  .ext-label{ width: 100%; }
+}

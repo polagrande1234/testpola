@@ -1,0 +1,314 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>폴라그란데 상담서 (2페이지 확장)</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet" />
+
+  <style>
+    :root{
+      --paper-bg:#fbf6ea;       /* 연베이지 */
+      --paper-line:#e7ddc6;
+      --ink:#2b2b2b;
+      --accent:#8B4513;
+      --accent2:#A0522D;
+    }
+
+    body{
+      font-family: 'Malgun Gothic', sans-serif;
+      background:#fff;
+      color:var(--ink);
+      padding:10px;
+    }
+
+    .print-actions{
+      position: fixed;
+      top: 18px;
+      right: 18px;
+      z-index: 999;
+    }
+
+    .paper{
+      max-width: 190mm;
+      margin: 0 auto 16px;
+      background: var(--paper-bg);
+      border: 1px solid var(--paper-line);
+      border-radius: 10px;
+      padding: 14px;
+      box-shadow: 0 0 10px rgba(0,0,0,0.08);
+    }
+
+    .paper-header{
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:12px;
+      padding:10px 12px;
+      border-radius: 8px;
+      background: linear-gradient(135deg, var(--accent2), var(--accent));
+      color:#fff;
+      margin-bottom: 10px;
+    }
+    .paper-header h1{
+      margin:0;
+      font-size: 18px;
+      letter-spacing:1px;
+      font-weight:700;
+    }
+    .paper-header .sub{
+      opacity:.95;
+      font-size: 12px;
+      white-space:nowrap;
+    }
+
+    .section{
+      border: 1px solid var(--paper-line);
+      border-radius: 10px;
+      background: rgba(255,255,255,0.65);
+      padding: 10px 12px;
+      margin-bottom: 10px;
+    }
+    .section-title{
+      font-weight:800;
+      color: var(--accent);
+      border-left: 4px solid var(--accent);
+      padding-left: 8px;
+      margin-bottom: 8px;
+      font-size: 13px;
+    }
+    .kv{
+      display:flex;
+      gap:10px;
+      padding:4px 0;
+      border-bottom: 1px dashed rgba(0,0,0,0.12);
+      font-size: 12.5px;
+    }
+    .kv:last-child{ border-bottom:none; }
+    .k{ width: 95px; color:#5c5c5c; font-weight:700; }
+    .v{ flex:1; }
+
+    .money{
+      background: rgba(255,255,255,0.8);
+      border: 2px solid rgba(139,69,19,0.35);
+    }
+    .money-row{
+      display:flex;
+      justify-content:space-between;
+      padding:6px 0;
+      border-bottom:1px dashed rgba(0,0,0,0.18);
+      font-size: 13px;
+    }
+    .money-row:last-child{
+      border-bottom:none;
+      border-top:2px solid rgba(0,0,0,0.35);
+      margin-top:6px;
+      padding-top:10px;
+      font-weight:900;
+      font-size: 15px;
+    }
+    .money-strong{ color: var(--accent); }
+
+    .note-box{
+      white-space: pre-line;
+      line-height:1.45;
+      font-size: 12.5px;
+      background: rgba(255,255,255,0.7);
+      border:1px solid var(--paper-line);
+      border-radius:10px;
+      padding: 10px 12px;
+    }
+
+    .page-badge{
+      display:inline-block;
+      font-size:12px;
+      font-weight:800;
+      padding:2px 8px;
+      border-radius:999px;
+      background: rgba(255,255,255,0.3);
+      border:1px solid rgba(255,255,255,0.45);
+    }
+
+    @media print{
+      .no-print{ display:none !important; }
+      body{ padding:0; }
+      .paper{ box-shadow:none; margin:0 auto; page-break-after: always; }
+      .paper:last-of-type{ page-break-after: auto; }
+      @page{ size: A4; margin: 8mm; }
+    }
+
+    /* 모바일 대응 */
+    @media (max-width: 576px){
+      .k{ width: 82px; }
+      .paper{ padding: 12px; border-radius: 8px; }
+      .paper-header h1{ font-size: 16px; }
+    }
+  </style>
+</head>
+
+<body>
+  <div class="print-actions no-print">
+    <button class="btn btn-primary" onclick="window.print()">인쇄</button>
+  </div>
+
+  <!-- 1페이지: 1~6 -->
+  <div class="paper">
+    <div class="paper-header">
+      <div>
+        <h1>POLAGRANDE 상담서</h1>
+        <div class="sub">A4 2장 구성 · 1/2 <span class="page-badge">상담 요약</span></div>
+      </div>
+      <div class="sub" id="docDate">-</div>
+    </div>
+
+    <div class="row g-2">
+      <div class="col-md-6">
+        <div class="section">
+          <div class="section-title">1. 기본정보</div>
+          <div class="kv"><div class="k">고객명</div><div class="v" id="pCustomerName">-</div></div>
+          <div class="kv"><div class="k">연락처</div><div class="v" id="pCustomerPhone">-</div></div>
+        </div>
+      </div>
+      <div class="col-md-6">
+        <div class="section">
+          <div class="section-title">2. 행사정보</div>
+          <div class="kv"><div class="k">희망일자</div><div class="v" id="pEventDate">-</div></div>
+          <div class="kv"><div class="k">행사시간</div><div class="v" id="pEventTime">-</div></div>
+          <div class="kv"><div class="k">예상인원</div><div class="v" id="pGuestCount">-</div></div>
+        </div>
+      </div>
+
+      <div class="col-md-6">
+        <div class="section">
+          <div class="section-title">3. 행사유형</div>
+          <div class="kv"><div class="k">카테고리</div><div class="v" id="pEventCategory">-</div></div>
+          <div class="kv"><div class="k">상세유형</div><div class="v" id="pEventSubType">-</div></div>
+        </div>
+      </div>
+
+      <div class="col-md-6">
+        <div class="section">
+          <div class="section-title">4. 선택옵션</div>
+          <div class="kv"><div class="k">내용</div><div class="v" id="pOptions">없음</div></div>
+        </div>
+        <div class="section">
+          <div class="section-title">5. 협력업체</div>
+          <div class="kv"><div class="k">내용</div><div class="v" id="pPartners">없음</div></div>
+        </div>
+      </div>
+
+      <div class="col-12">
+        <div class="section money">
+          <div class="section-title">6. 금액요약</div>
+          <div class="money-row"><span>기본 금액</span><span id="pBasePrice">₩0</span></div>
+          <div class="money-row"><span>식대</span><span id="pMealPrice">₩0</span></div>
+          <div class="money-row"><span>옵션</span><span id="pOptionPrice">₩0</span></div>
+          <div class="money-row"><span>프로모션</span><span id="pPromotion">-₩0</span></div>
+          <div class="money-row"><span>총 금액</span><span class="money-strong" id="pTotalPrice">₩0</span></div>
+
+          <div class="money-row" style="border-top:1px solid rgba(0,0,0,0.12); margin-top:6px; padding-top:8px;">
+            <span>계약금</span><span id="pDeposit">₩0</span>
+          </div>
+          <div class="money-row">
+            <span>잔금</span><span id="pBalance">₩0</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 2페이지: 7 -->
+  <div class="paper">
+    <div class="paper-header">
+      <div>
+        <h1>POLAGRANDE 안내문</h1>
+        <div class="sub">A4 2장 구성 · 2/2 <span class="page-badge">필독</span></div>
+      </div>
+      <div class="sub">행사 최종 확인 안내</div>
+    </div>
+
+    <div class="section">
+      <div class="section-title">7. 행사최종확인안내(필독)</div>
+      <div class="note-box" id="pFinalNotice">
+행사 최종 확정 안내 (필독)
+
+본 내역서는 원활한 행사 준비를 위한 최종 확정 기준 문서입니다.
+확정된 인원 및 구성에 따라 식자재 준비, 인력 배치, 공간 세팅이 진행됩니다.
+
+최종 인원 확정
+- 행사 준비를 위해 행사 10일 전까지 최종 인원 확정을 부탁드립니다.
+- 확정 인원 기준으로 식사 및 좌석 세팅이 준비되며, 이후 인원 감소에 따른 식대 환불은 어렵습니다.
+
+잔금은 행사일 기준 7일 전까지 정산을 부탁드립니다.
+안정적인 행사 준비를 위한 절차이오니 협조 부탁드립니다.
+
+입금 계좌
+신한은행 110-590-705330
+예금주 : 폴라그란데
+
+입금 시 행사자 성함(또는 예약자 성함)으로 기재 부탁드립니다.
+      </div>
+    </div>
+
+    <div class="section">
+      <div class="section-title">서명</div>
+      <div class="row g-2">
+        <div class="col-md-6">
+          <div class="note-box">계약자(고객) : ____________________ (인)</div>
+        </div>
+        <div class="col-md-6">
+          <div class="note-box">폴라그란데 : ____________________ (인)</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="section">
+      <div class="section-title">특이사항</div>
+      <div class="note-box" id="pMemo">-</div>
+    </div>
+  </div>
+
+  <script>
+    (function(){
+      function n(v){ var x=parseInt(v||0,10); return isNaN(x)?0:x; }
+      function won(x){ return "₩" + n(x).toLocaleString("ko-KR"); }
+      function $(id){ return document.getElementById(id); }
+
+      window.addEventListener("DOMContentLoaded", function(){
+        var p = new URLSearchParams(window.location.search);
+        var today = new Date();
+        if($("docDate")) $("docDate").textContent = today.getFullYear()+"-"+String(today.getMonth()+1).padStart(2,"0")+"-"+String(today.getDate()).padStart(2,"0");
+
+        $("pCustomerName").textContent = p.get("customerName") || "-";
+        $("pCustomerPhone").textContent = p.get("customerPhone") || "-";
+        $("pEventDate").textContent = p.get("eventDate") || "-";
+        $("pEventTime").textContent = p.get("eventTime") || "-";
+        $("pGuestCount").textContent = (p.get("guestCount") || "-") + "명";
+        $("pEventCategory").textContent = p.get("eventCategory") || "-";
+        $("pEventSubType").textContent = p.get("eventSubType") || "-";
+
+        var memo = p.get("memo") || "";
+        // memo에서 [선택옵션]/[협력업체] 라인을 추출해 별도 표기
+        var options = "없음", partners = "없음";
+        memo.split(/\r?\n/).forEach(function(line){
+          if(line.indexOf("[선택옵션]")===0) options = line.replace("[선택옵션]","").trim() || "없음";
+          if(line.indexOf("[협력업체]")===0) partners = line.replace("[협력업체]","").trim() || "없음";
+        });
+
+        $("pOptions").textContent = options;
+        $("pPartners").textContent = partners;
+
+        $("pBasePrice").textContent = won(p.get("basePrice"));
+        $("pMealPrice").textContent = won(p.get("mealPrice"));
+        $("pOptionPrice").textContent = won(p.get("optionPrice"));
+        $("pPromotion").textContent = "-"+won(p.get("promotion"));
+        $("pTotalPrice").textContent = won(p.get("totalPrice"));
+        $("pDeposit").textContent = won(p.get("depositAmount"));
+        $("pBalance").textContent = won(p.get("balanceAmount"));
+
+        $("pMemo").textContent = memo ? memo : "-";
+      });
+    })();
+  </script>
+</body>
+</html>
